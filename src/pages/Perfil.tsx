@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { Download, Bell, Moon, Shield, CreditCard, HelpCircle, LogOut, ChevronRight } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 export function Perfil() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -23,16 +28,23 @@ export function Perfil() {
     }
   };
 
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="w-full pb-8">
       <div className="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-6">
-        <div className="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center text-white font-bold text-xl">
-          MR
+        <div className="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center text-white font-bold text-xl uppercase">
+          {user?.email?.substring(0, 2) || 'US'}
         </div>
         <div>
-           <h2 className="font-bold text-slate-800 text-[17px]">Maria Ribeiro</h2>
-           <p className="text-sm text-slate-500 mb-1">maria.ribeiro@email.com</p>
-           <span className="inline-block px-2.5 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold tracking-wide uppercase rounded-md border border-green-200">Plano Premium</span>
+           <h2 className="font-bold text-slate-800 text-[17px]">{user?.email?.split('@')[0]}</h2>
+           <p className="text-sm text-slate-500 mb-1">{user?.email}</p>
+           <span className="inline-block px-2.5 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold tracking-wide uppercase rounded-md border border-green-200">Plano Basic</span>
         </div>
       </div>
 
@@ -112,7 +124,10 @@ export function Perfil() {
         </div>
       </div>
 
-      <button className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-colors active:bg-red-100">
+      <button 
+        onClick={handleLogout}
+        className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-colors active:bg-red-100"
+      >
         <LogOut className="w-5 h-5" />
         Sair da conta
       </button>

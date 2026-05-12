@@ -16,19 +16,19 @@ export default defineConfig(({mode}) => {
           name: 'FINANÇA+',
           short_name: 'FINANÇA+',
           description: 'Aplicativo financeiro',
-          theme_color: '#ffffff',
-          background_color: '#ffffff',
+          theme_color: '#0f172a',
+          background_color: '#f8fafc',
           display: 'standalone',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'icon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml'
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml'
             }
           ]
         }
