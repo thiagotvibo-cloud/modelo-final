@@ -2,10 +2,12 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFinance, Divida } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
+import { AddModal } from "../components/AddModal";
 
 export function Dividas() {
   const { dividas, updateDivida, deleteDivida } = useFinance();
   const [editingItem, setEditingItem] = useState<Divida | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleEdit = (divida: Divida) => {
     setEditingItem(divida);
@@ -25,7 +27,10 @@ export function Dividas() {
           <p className="text-sm text-slate-500 mt-1">Acompanhe e quite suas dívidas</p>
         </div>
         <div>
-          <button className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors">
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors"
+          >
             <Plus className="w-5 h-5" />
             Nova
           </button>
@@ -79,6 +84,12 @@ export function Dividas() {
         initialData={editingItem || {}}
         onSave={handleSaveEdit}
         onDelete={() => { if(editingItem) deleteDivida(editingItem.id) }}
+      />
+      
+      <AddModal 
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        defaultType="Dívida"
       />
     </div>
   );

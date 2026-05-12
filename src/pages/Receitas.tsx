@@ -2,10 +2,12 @@ import { ChevronLeft, ChevronRight, Plus, Check, Pencil, Trash2 } from "lucide-r
 import React, { useState } from "react";
 import { useFinance, Receita } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
+import { AddModal } from "../components/AddModal";
 
 export function Receitas() {
   const { receitas, updateReceita, deleteReceita } = useFinance();
   const [editingItem, setEditingItem] = useState<Receita | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleEdit = (receita: Receita) => {
     setEditingItem(receita);
@@ -43,7 +45,10 @@ export function Receitas() {
       </div>
 
       <div className="mb-6">
-        <button className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors">
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors"
+        >
           <Plus className="w-5 h-5" />
           Nova Receita
         </button>
@@ -108,6 +113,11 @@ export function Receitas() {
         initialData={editingItem || {}}
         onSave={handleSaveEdit}
         onDelete={() => { if(editingItem) deleteReceita(editingItem.id) }}
+      />
+      <AddModal 
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        defaultType="Receita"
       />
     </div>
   );

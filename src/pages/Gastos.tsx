@@ -2,10 +2,12 @@ import { ChevronLeft, ChevronRight, Plus, Check, Pencil, Trash2 } from "lucide-r
 import React, { useState } from "react";
 import { useFinance, Gasto } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
+import { AddModal } from "../components/AddModal";
 
 export function Gastos() {
   const { gastos, updateGasto, deleteGasto } = useFinance();
   const [editingItem, setEditingItem] = useState<Gasto | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleEdit = (gasto: Gasto) => {
     setEditingItem(gasto);
@@ -41,8 +43,11 @@ export function Gastos() {
         </button>
       </div>
 
-      <div className="mb-6 mb-6">
-        <button className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors">
+      <div className="mb-6">
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors"
+        >
           <Plus className="w-5 h-5" />
           Novo Gasto
         </button>
@@ -103,6 +108,12 @@ export function Gastos() {
         initialData={editingItem || {}}
         onSave={handleSaveEdit}
         onDelete={() => { if(editingItem) deleteGasto(editingItem.id) }}
+      />
+
+      <AddModal 
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        defaultType="Gasto"
       />
     </div>
   );

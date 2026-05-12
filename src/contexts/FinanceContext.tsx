@@ -8,7 +8,7 @@ export type Conta = { id: string; name: string; type: string; balance: number; e
 
 export type Orcamento = { id: string; category: string; limit: number; spent: number; };
 export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; };
-export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; };
+export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; account?: string; method?: string; };
 export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; };
 
 export type FinanceContextType = {
@@ -150,20 +150,70 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const generateId = () => crypto.randomUUID();
 
+  const handleAccountUpdate = (accountName: string, amountChange: number) => {
+    if (!accountName) return;
+    setContas(prevContas => {
+      const updated = prevContas.map(conta => 
+        conta.name === accountName ? { ...conta, balance: conta.balance + amountChange } : conta
+      );
+      const updatedConta = updated.find(c => c.name === accountName);
+      if (updatedConta) syncUpsert('contas', updatedConta.id, updatedConta);
+      return updated;
+    });
+  };
+
+  const handleBudgetUpdate = (category: string, amountChange: number) => {
+    if (!category) return;
+    setOrcamentos(prev => {
+      const updated = prev.map(orc => 
+        orc.category === category ? { ...orc, spent: orc.spent + amountChange } : orc
+      );
+      const updatedOrc = updated.find(c => c.category === category);
+      if (updatedOrc) syncUpsert('orcamentos', updatedOrc.id, updatedOrc);
+      return updated;
+    });
+  };
+
   const addGasto = (data: Omit<Gasto, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data } as Gasto;
     setGastos(prev => [...prev, newItem]);
     syncUpsert('gastos', id, newItem);
+    if (data.status === 'Pago') {
+      handleAccountUpdate(data.account, -data.value);
+    }
+    // Update budget if possible
+    handleBudgetUpdate((data as any).category, data.value);
   };
   const updateGasto = (id: string, data: Partial<Gasto>) => {
+    const oldItem = gastos.find(i => i.id === id);
     setGastos(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = gastos.find(i => i.id === id);
     if (item) syncUpsert('gastos', id, { ...item, ...data });
+
+    if (oldItem && data.status && oldItem.status !== data.status) {
+       if (data.status === 'Pago') {
+         handleAccountUpdate(oldItem.account, -oldItem.value);
+       } else {
+         handleAccountUpdate(oldItem.account, oldItem.value); // Revert
+       }
+    }
+    
+    // Simplistic approach: if value changes, adjust budget
+    if (oldItem && data.value && data.value !== oldItem.value) {
+      handleBudgetUpdate((oldItem as any).category, data.value - oldItem.value);
+    }
   };
   const deleteGasto = (id: string) => {
+    const item = gastos.find(i => i.id === id);
     setGastos(prev => prev.filter(i => i.id !== id));
     syncDelete('gastos', id);
+    if (item && item.status === 'Pago') {
+      handleAccountUpdate(item.account, item.value);
+    }
+    if (item) {
+      handleBudgetUpdate((item as any).category, -(item.value));
+    }
   };
 
   const addReceita = (data: Omit<Receita, 'id'>) => {
@@ -171,13 +221,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const newItem = { id, ...data } as Receita;
     setReceitas(prev => [...prev, newItem]);
     syncUpsert('receitas', id, newItem);
+    if (data.status === 'Recebido') {
+      // Receita doesn't have an account field visually right now.
+      // But if it had, we would add to balance.
+    }
   };
   const updateReceita = (id: string, data: Partial<Receita>) => {
+    const oldItem = receitas.find(i => i.id === id);
     setReceitas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = receitas.find(i => i.id === id);
     if (item) syncUpsert('receitas', id, { ...item, ...data });
+    
+    // Status tracking if account added
   };
   const deleteReceita = (id: string) => {
+    const item = receitas.find(i => i.id === id);
     setReceitas(prev => prev.filter(i => i.id !== id));
     syncDelete('receitas', id);
   };
@@ -187,15 +245,31 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const newItem = { id, ...data } as Parcela;
     setParcelas(prev => [...prev, newItem]);
     syncUpsert('parcelas', id, newItem);
+    if (data.status === 'Pago') {
+      handleAccountUpdate(data.account, -data.value);
+    }
   };
   const updateParcela = (id: string, data: Partial<Parcela>) => {
+    const oldItem = parcelas.find(i => i.id === id);
     setParcelas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = parcelas.find(i => i.id === id);
     if (item) syncUpsert('parcelas', id, { ...item, ...data });
+
+    if (oldItem && data.status && oldItem.status !== data.status) {
+       if (data.status === 'Pago') {
+         handleAccountUpdate(oldItem.account, -oldItem.value);
+       } else {
+         handleAccountUpdate(oldItem.account, oldItem.value); // Revert
+       }
+    }
   };
   const deleteParcela = (id: string) => {
+    const item = parcelas.find(i => i.id === id);
     setParcelas(prev => prev.filter(i => i.id !== id));
     syncDelete('parcelas', id);
+    if (item && item.status === 'Pago') {
+      handleAccountUpdate(item.account, item.value);
+    }
   };
 
   const addConta = (data: Omit<Conta, 'id'>) => {
@@ -251,15 +325,30 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const newItem = { id, ...data } as Divida;
     setDividas(prev => [...prev, newItem]);
     syncUpsert('dividas', id, newItem);
+    if (data.paidAmount > 0 && data.account) {
+      handleAccountUpdate(data.account, -data.paidAmount);
+    }
   };
   const updateDivida = (id: string, data: Partial<Divida>) => {
+    const oldItem = dividas.find(i => i.id === id);
     setDividas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = dividas.find(i => i.id === id);
     if (item) syncUpsert('dividas', id, { ...item, ...data });
+
+    if (oldItem && data.paidAmount !== undefined && data.paidAmount !== oldItem.paidAmount) {
+      const diff = data.paidAmount - oldItem.paidAmount;
+      if (item?.account) {
+        handleAccountUpdate(item.account, -diff); // Reducing balance by the difference paid
+      }
+    }
   };
   const deleteDivida = (id: string) => {
+    const item = dividas.find(i => i.id === id);
     setDividas(prev => prev.filter(i => i.id !== id));
     syncDelete('dividas', id);
+    if (item && item.paidAmount > 0 && item.account) {
+      handleAccountUpdate(item.account, item.paidAmount);
+    }
   };
 
   const addInvestimento = (data: Omit<Investimento, 'id'>) => {
@@ -281,6 +370,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   return (
     <FinanceContext.Provider value={{ 
       gastos, receitas, parcelas, contas, orcamentos, metas, dividas, investimentos, 
+      addGasto, addReceita, addParcela, addConta, addOrcamento, addMeta, addDivida, addInvestimento,
       updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela, updateConta, deleteConta,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento
     }}>
