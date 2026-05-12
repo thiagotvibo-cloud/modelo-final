@@ -32,7 +32,7 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <nav className="bg-white border-t border-slate-200 shrink-0 overflow-x-auto hide-scrollbar absolute bottom-0 w-full z-50">
+      <nav className="bg-white border-t border-slate-200 fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 overflow-x-auto hide-scrollbar">
         <div className="flex px-3 py-2 w-max min-w-full justify-between items-center gap-1">
           {navItems.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
