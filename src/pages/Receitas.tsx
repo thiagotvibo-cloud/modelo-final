@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useFinance, Receita } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
+import { formatDateShort } from "../lib/utils";
 
 export function Receitas() {
   const { receitas, updateReceita, deleteReceita } = useFinance();
@@ -67,7 +68,7 @@ export function Receitas() {
 
       <div className="space-y-4">
         {receitas.length > 0 ? receitas.map((receita) => {
-          const formattedDate = new Date(receita.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+          const formattedDate = formatDateShort(receita.date);
           const received = isRecebido(receita);
           
           return (

@@ -1,12 +1,15 @@
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, CreditCard, Wallet, Calendar, Target, AlertCircle, BarChart3, ChevronRight as ChevronRightIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, CreditCard, Wallet, Calendar, Target, AlertCircle, BarChart3, ChevronRight as ChevronRightIcon, Plus } from "lucide-react";
 import { useFinance } from "../contexts/FinanceContext";
 import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { AddModal } from "../components/AddModal";
 
 export function Resumo() {
   const { gastos, receitas, parcelas, metas, dividas } = useFinance();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isAdding, setIsAdding] = useState<'Gasto' | 'Receita' | 'Parcela' | 'Dívida' | 'Meta' | 'Orcamento' | 'Investimento' | 'Conta' | null>(null);
+  const navigate = useNavigate();
 
   const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
@@ -75,12 +78,12 @@ export function Resumo() {
 
   return (
     <div className="w-full animate-in fade-in duration-500 pb-10">
-      <div className="bg-[#007AFF] -mx-4 -mt-4 p-8 pb-32 mb-[-100px] rounded-b-[48px] relative overflow-hidden">
+      <div className="bg-[#0d1d50]/90 backdrop-blur-3xl -mx-4 -mt-4 p-8 pb-32 mb-[-100px] rounded-b-[48px] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl opacity-50"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-20 -mb-20 blur-2xl opacity-30"></div>
         
         <div className="flex items-center justify-between mb-10 relative z-10">
-          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20">
+          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 shadow-sm">
             <button 
               onClick={() => changeMonth(-1)}
               className="p-1 text-white/60 hover:text-white transition-colors"
@@ -95,40 +98,63 @@ export function Resumo() {
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-          <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-[14px] flex items-center justify-center border border-white/20">
+          <Link to="/relatorios" className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-[14px] flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-transform">
             <BarChart3 className="w-5 h-5 text-white" />
-          </div>
+          </Link>
         </div>
 
         <div className="text-center relative z-10">
-          <p className="text-[12px] font-bold text-white/60 uppercase tracking-[0.2em] mb-3">Saldo Disponível</p>
-          <p className="text-[48px] font-bold tracking-tighter text-white mb-2 leading-none">{(saldo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <img src="https://flagcdn.com/w20/br.png" alt="BRL" className="w-4 h-4 rounded-full object-cover" />
+            <span className="text-[14px] font-bold text-white/80 tracking-wide">Real Brasileiro</span>
+            <ChevronRightIcon className="w-4 h-4 text-white/50 rotate-90" />
+          </div>
+          <p className="text-[52px] font-bold tracking-tighter text-white mb-6 leading-none">
+            {saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </p>
+          <div className="flex justify-center mb-6">
+            <span className="text-[12px] font-bold text-white/60 uppercase tracking-[0.2em]">Saldo Disponível</span>
+          </div>
+          
           <div className="flex justify-center">
-            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold backdrop-blur-md border ${saldo >= 0 ? 'bg-green-500/20 text-green-300 border-green-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30'}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${saldo >= 0 ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
-              {saldo >= 0 ? 'Balanço Positivo' : 'Atenção ao Saldo'}
-            </div>
+            <button 
+              onClick={() => setIsAdding('Receita')}
+              className="flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all shadow-sm">
+              <Plus className="w-5 h-5 text-white" />
+              <span className="text-white font-bold text-[14px] tracking-tight">Adicionar Dinheiro</span>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="px-1 relative z-20">
-        <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="iphone-card p-6 shadow-xl shadow-black/5 active:scale-[0.98] transition-all">
-            <div className="w-10 h-10 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-              <TrendingUp className="w-5 h-5 text-green-500" />
+        <div className="bg-white rounded-[32px] p-2 shadow-xl shadow-black/5 flex items-center justify-evenly mb-10 border border-black/[0.03]">
+          <button 
+            onClick={() => setIsAdding('Gasto')}
+            className="flex flex-col items-center gap-2 p-4 flex-1 hover:bg-slate-50 transition-all rounded-[24px]">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-1">
+              <TrendingUp className="w-6 h-6 stroke-[2.5]" />
             </div>
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Receitas</h3>
-            <p className="text-[20px] font-bold text-slate-900 tracking-tight font-sans">{totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-          </div>
-
-          <div className="iphone-card p-6 shadow-xl shadow-black/5 active:scale-[0.98] transition-all">
-            <div className="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
-              <TrendingDown className="w-5 h-5 text-red-500" />
+            <span className="text-[12px] font-bold text-slate-700 tracking-tight">Enviar</span>
+          </button>
+          <div className="w-[1px] h-12 bg-slate-100"></div>
+          <button 
+            onClick={() => setIsAdding('Receita')}
+            className="flex flex-col items-center gap-2 p-4 flex-1 hover:bg-slate-50 transition-all rounded-[24px]">
+            <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mb-1">
+              <TrendingDown className="w-6 h-6 stroke-[2.5]" />
             </div>
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Despesas</h3>
-            <p className="text-[20px] font-bold text-slate-900 tracking-tight font-sans">{totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-          </div>
+            <span className="text-[12px] font-bold text-slate-700 tracking-tight">Solicitar</span>
+          </button>
+          <div className="w-[1px] h-12 bg-slate-100"></div>
+          <button 
+            onClick={() => navigate('/contas')}
+            className="flex flex-col items-center gap-2 p-4 flex-1 hover:bg-slate-50 transition-all rounded-[24px]">
+            <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mb-1">
+              <Wallet className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <span className="text-[12px] font-bold text-slate-700 tracking-tight">Banco</span>
+          </button>
         </div>
       </div>
 
@@ -192,6 +218,12 @@ export function Resumo() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      <AddModal 
+        isOpen={isAdding !== null}
+        onClose={() => setIsAdding(null)}
+        defaultType={isAdding || 'Receita'}
+      />
     </div>
   );
 }

@@ -13,6 +13,12 @@ type EditModalProps = {
 export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelete }: EditModalProps) {
   const [formData, setFormData] = useState(initialData);
 
+  React.useEffect(() => {
+    if (isOpen && initialData) {
+      setFormData(initialData);
+    }
+  }, [isOpen, initialData]);
+
   if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -53,7 +59,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                 .map((key) => {
                   const val = formData[key];
                   const isNumber = typeof val === 'number';
-                  const isDate = key === 'date';
+                  const isDate = key === 'date' || key === 'deadline';
                   const inputType = isNumber ? 'number' : isDate ? 'date' : 'text';
 
                   const labels: Record<string, string> = {
@@ -105,7 +111,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                       <input 
                         type={inputType}
                         name={key}
-                        value={isDate && val ? new Date(val).toISOString().split('T')[0] : (val !== undefined && val !== null ? val : '')} 
+                        value={isDate && val ? (!isNaN(Date.parse(String(val))) ? new Date(String(val)).toISOString().split('T')[0] : '') : (val !== undefined && val !== null ? val : '')} 
                         onChange={handleChange}
                         className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#007AFF] bg-slate-50"
                       />

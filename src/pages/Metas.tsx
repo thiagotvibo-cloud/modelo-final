@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useFinance, Meta } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
+import { formatDateShort } from "../lib/utils";
 
 export function Metas() {
   const { metas, updateMeta, deleteMeta } = useFinance();
@@ -50,7 +51,7 @@ export function Metas() {
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-[19px] tracking-tight">{meta.title}</h3>
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.15em]">{meta.deadline}</p>
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.15em]">{meta.deadline.includes('-') && !isNaN(Date.parse(meta.deadline)) ? formatDateShort(meta.deadline) : meta.deadline}</p>
                   </div>
                 </div>
 

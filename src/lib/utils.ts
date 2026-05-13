@@ -16,3 +16,10 @@ export function formatDate(dateString: string) {
   const [year, month, day] = dateString.split('-');
   return `${day}/${month}/${year}`;
 }
+
+export function formatDateShort(dateString: string | undefined) {
+  if (!dateString) return 'S/ Data';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Data Inválida';
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+}

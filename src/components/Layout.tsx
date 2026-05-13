@@ -20,9 +20,9 @@ export function Layout() {
             <h1 className="text-[19px] font-bold text-slate-900 tracking-tight">Finanças</h1>
             <p className="text-[11px] font-bold text-slate-400 -mt-0.5 tracking-wide uppercase">Controle Pessoal</p>
           </div>
-          <div className="w-10 h-10 bg-[#1C1C1E] rounded-full flex items-center justify-center text-white">
+          <Link to="/contas" className="w-10 h-10 bg-[#1C1C1E] rounded-full flex items-center justify-center text-white active:scale-95 transition-transform">
             <Wallet className="w-5 h-5" />
-          </div>
+          </Link>
         </header>
 
         <main className="flex-1 w-full bg-[#F2F2F7] relative pb-28 p-4 sm:p-6 overflow-y-auto hide-scrollbar">

@@ -49,13 +49,14 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
     const numValue = Number(value.replace(/,/g, '.'));
     const numTarget = Number(target.replace(/,/g, '.'));
     const numLimit = Number(limit.replace(/,/g, '.'));
+    const parsedDate = !isNaN(Date.parse(date)) ? new Date(date).toISOString() : new Date().toISOString();
 
     if (type === 'Gasto') {
       if (!description || isNaN(numValue)) return;
       addGasto({
         description,
         value: numValue,
-        date: new Date(date).toISOString(),
+        date: parsedDate,
         method,
         status: isPaid ? 'Pago' : 'Pendente'
       });
@@ -64,7 +65,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       addReceita({
         description,
         value: numValue,
-        date: new Date(date).toISOString(),
+        date: parsedDate,
         category,
         status: isPaid ? 'Recebido' : 'Previsto'
       });
@@ -73,7 +74,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       addParcela({
         description,
         value: numValue,
-        date: new Date(date).toISOString(),
+        date: parsedDate,
         method,
         currentInstallment: 1,
         totalInstallments: parcelaType === 'Parcela' ? Number(totalInstallments) : 1,

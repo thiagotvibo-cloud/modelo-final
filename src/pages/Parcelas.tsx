@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useFinance, Parcela } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
+import { formatDateShort } from "../lib/utils";
 
 export function Parcelas() {
   const { parcelas, updateParcela, deleteParcela } = useFinance();
@@ -63,7 +64,7 @@ export function Parcelas() {
           const isRecorrente = parcela.type !== 'Parcela';
           const perc = isRecorrente ? 100 : Math.round((parcela.currentInstallment / parcela.totalInstallments) * 100);
           const remaining = isRecorrente ? 0 : (parcela.totalInstallments - parcela.currentInstallment) * parcela.value;
-          const formattedDate = new Date(parcela.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+          const formattedDate = formatDateShort(parcela.date);
           
           return (
             <div 

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useFinance, Gasto } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
+import { formatDateShort } from "../lib/utils";
 
 export function Gastos() {
   const { gastos, updateGasto, deleteGasto } = useFinance();
@@ -53,7 +54,7 @@ export function Gastos() {
 
       <div className="space-y-4">
         {gastos.length > 0 ? gastos.map((gasto) => {
-          const formattedDate = new Date(gasto.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+          const formattedDate = formatDateShort(gasto.date);
           const paid = isPago(gasto);
           
           return (

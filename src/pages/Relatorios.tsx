@@ -4,10 +4,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 export function Relatorios() {
   const { gastos, orcamentos } = useFinance();
 
-  const data = orcamentos.map(orc => {
-    // Or we could calculate directly from gastos
-    const spent = gastos.filter(g => (g as any).category === orc.category).reduce((acc, curr) => acc + curr.value, 0);
-    return { name: orc.category, value: spent || orc.spent || 0 };
+  const methods = Array.from(new Set(gastos.map(g => g.method)));
+  const data = methods.map(method => {
+    const spent = gastos.filter(g => g.method === method).reduce((acc, curr) => acc + curr.value, 0);
+    return { name: method, value: spent };
   }).filter(item => item.value > 0);
 
   const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef'];
