@@ -33,6 +33,7 @@ export type FinanceContextType = {
   addGasto: (data: Omit<Gasto, 'id'>) => void;
   addReceita: (data: Omit<Receita, 'id'>) => void;
   addParcela: (data: Omit<Parcela, 'id'>) => void;
+  addMultipleParcelas: (items: Omit<Parcela, 'id'>[]) => void;
   addOrcamento: (data: Omit<Orcamento, 'id'>) => void;
   addMeta: (data: Omit<Meta, 'id'>) => void;
   addDivida: (data: Omit<Divida, 'id'>) => void;
@@ -201,6 +202,15 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setParcelas(prev => [...prev, newItem]);
     syncUpsert('parcelas', id, newItem);
   };
+
+  const addMultipleParcelas = (items: Omit<Parcela, 'id'>[]) => {
+    const newItemsWithIds = items.map(item => ({ id: generateId(), ...item })) as Parcela[];
+    setParcelas(prev => [...prev, ...newItemsWithIds]);
+    if (supabase) {
+      supabase.from('parcelas').upsert(newItemsWithIds);
+    }
+  };
+
   const updateParcela = (id: string, data: Partial<Parcela>) => {
     setParcelas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = parcelas.find(i => i.id === id);
@@ -303,7 +313,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     <FinanceContext.Provider value={{ 
       gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas,
       notificationSettings,
-      addGasto, addReceita, addParcela, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
+      addGasto, addReceita, addParcela, addMultipleParcelas, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
       updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento,
       updateConta, deleteConta, updateNotificationSettings

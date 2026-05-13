@@ -26,33 +26,14 @@ export function Resumo() {
     return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
   };
 
-  const filterParcelaByDate = (p: { date: string; type: string; totalInstallments: number }) => {
-    const startDate = getSafeDate(p.date);
-    const startYear = startDate.getFullYear();
-    const startMonth = startDate.getMonth();
-    
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
-    
-    const monthDiff = (currentYear - startYear) * 12 + (currentMonth - startMonth);
-    
-    if (p.type === 'Assinatura' || p.type === 'Recorrente') {
-      return monthDiff >= 0;
-    } else {
-      return monthDiff >= 0 && monthDiff < p.totalInstallments;
-    }
+  const filterParcelaByDate = (p: { date: string }) => {
+    const d = getSafeDate(p.date);
+    return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
   };
 
   const currentReceitas = receitas.filter(r => filterByDate(r.date));
   const currentGastos = gastos.filter(g => filterByDate(g.date));
-  const currentParcelas = parcelas.filter(p => filterParcelaByDate(p)).map(p => {
-    const startDate = getSafeDate(p.date);
-    const monthDiff = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + (currentDate.getMonth() - startDate.getMonth());
-    return {
-      ...p,
-      currentInstallment: p.type === 'Parcela' ? Math.min(p.totalInstallments, monthDiff + 1) : 1
-    };
-  });
+  const currentParcelas = parcelas.filter(p => filterParcelaByDate(p));
 
   const totalReceitas = currentReceitas.reduce((a, b) => a + b.value, 0);
   const totalRecebido = currentReceitas.filter(r => r.status === 'Recebido').reduce((a, b) => a + b.value, 0);
@@ -135,7 +116,10 @@ export function Resumo() {
         const gd = getSafeDate(gas.date);
         return gd.getMonth() === m && gd.getFullYear() === y;
       }).reduce((acc, curr) => acc + curr.value, 0) + 
-      parcelas.filter(filterParcelaByDateForChart).reduce((acc, curr) => acc + curr.value, 0);
+      parcelas.filter(p => {
+        const pd = getSafeDate(p.date);
+        return pd.getMonth() === m && pd.getFullYear() === y;
+      }).reduce((acc, curr) => acc + curr.value, 0);
 
       data.push({
         name: d.toLocaleDateString('pt-BR', { month: 'short' }),

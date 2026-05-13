@@ -10,7 +10,7 @@ type AddModalProps = {
 };
 
 export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalProps) {
-  const { addGasto, addReceita, addParcela, addDivida, addMeta, addOrcamento, addInvestimento, addConta } = useFinance();
+  const { addGasto, addReceita, addParcela, addMultipleParcelas, addDivida, addMeta, addOrcamento, addInvestimento, addConta } = useFinance();
   
   const [description, setDescription] = useState("");
   const [value, setValue] = useState("");
@@ -75,16 +75,49 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       });
     } else if (type === 'Parcela') {
       if (!description || isNaN(numValue)) return;
-      addParcela({
-        description,
-        value: numValue,
-        date: parsedDate,
-        method,
-        currentInstallment: 1,
-        totalInstallments: parcelaType === 'Parcela' ? Number(totalInstallments) : 1,
-        status: isPaid ? 'Pago' : 'Pendente',
-        type: parcelaType
-      });
+      
+      const items = [];
+      const baseDate = new Date(parsedDate);
+      
+      if (parcelaType === 'Parcela') {
+        const count = Number(totalInstallments) || 1;
+        const installmentValue = numValue / count;
+        
+        for (let i = 0; i < count; i++) {
+          const installmentDate = new Date(baseDate);
+          installmentDate.setMonth(baseDate.getMonth() + i);
+          items.push({
+            description: `${description} (${i + 1}/${count})`,
+            value: Number(installmentValue.toFixed(2)),
+            date: installmentDate.toISOString(),
+            method,
+            currentInstallment: i + 1,
+            totalInstallments: count,
+            status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
+            type: parcelaType
+          });
+        }
+      } else {
+        // For Assinatura/Recorrente, generate 12 months for tracking
+        for (let i = 0; i < 12; i++) {
+          const installmentDate = new Date(baseDate);
+          installmentDate.setMonth(baseDate.getMonth() + i);
+          items.push({
+            description,
+            value: numValue,
+            date: installmentDate.toISOString(),
+            method,
+            currentInstallment: 1,
+            totalInstallments: 1,
+            status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
+            type: parcelaType
+          });
+        }
+      }
+      
+      if (items.length > 0) {
+        addMultipleParcelas(items);
+      }
     } else if (type === 'Dívida') {
       if (!description || isNaN(numValue)) return;
       addDivida({

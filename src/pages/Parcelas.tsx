@@ -19,20 +19,8 @@ export function Parcelas() {
   };
 
   const filterByDate = (p: Parcela) => {
-    const startDate = getSafeDate(p.date);
-    const startYear = startDate.getFullYear();
-    const startMonth = startDate.getMonth();
-    
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
-    
-    const monthDiff = (currentYear - startYear) * 12 + (currentMonth - startMonth);
-    
-    if (p.type === 'Assinatura' || p.type === 'Recorrente') {
-      return monthDiff >= 0;
-    } else {
-      return monthDiff >= 0 && monthDiff < p.totalInstallments;
-    }
+    const d = getSafeDate(p.date);
+    return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
   };
 
   const changeMonth = (offset: number) => {
@@ -44,14 +32,7 @@ export function Parcelas() {
   const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-  const currentParcelas = parcelas.filter(p => filterByDate(p)).map(p => {
-    const startDate = getSafeDate(p.date);
-    const monthDiff = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + (currentDate.getMonth() - startDate.getMonth());
-    return {
-      ...p,
-      currentInstallment: p.type === 'Parcela' ? Math.min(p.totalInstallments, monthDiff + 1) : 1
-    };
-  });
+  const currentParcelas = parcelas.filter(p => filterByDate(p));
 
   const handleEdit = (parcela: Parcela) => {
     setEditingItem(parcela);
