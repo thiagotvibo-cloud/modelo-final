@@ -37,99 +37,24 @@ export function Perfil() {
 
   return (
     <div className="w-full pb-8">
-      <div className="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-6">
-        <div className="w-14 h-14 bg-slate-800 rounded-full flex items-center justify-center text-white font-bold text-xl uppercase">
+      <div className="flex items-center gap-6 iphone-card p-6 mb-10">
+        <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-white font-bold text-2xl uppercase shadow-lg shadow-black/20 border-2 border-white">
           {user?.email?.substring(0, 2) || 'US'}
         </div>
         <div>
-           <h2 className="font-bold text-slate-800 text-[17px]">{user?.email?.split('@')[0]}</h2>
-           <p className="text-sm text-slate-500 mb-1">{user?.email}</p>
-           <span className="inline-block px-2.5 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold tracking-wide uppercase rounded-md border border-green-200">Plano Basic</span>
+           <h2 className="font-bold text-slate-900 text-[20px] tracking-tight">{user?.email?.split('@')[0]}</h2>
+           <p className="text-[13px] text-slate-400 font-medium mb-2">{user?.email}</p>
         </div>
       </div>
 
-      <div className="mb-6">
-        <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Aplicativo</h3>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-           <div 
-             className="flex items-center justify-between p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors active:bg-slate-100"
-             onClick={handleInstallClick}
-           >
-             <div className="flex items-center gap-3">
-               <div className="p-2 bg-slate-50 rounded-lg">
-                 <Download className="w-5 h-5 text-slate-600" />
-               </div>
-               <div>
-                  <h4 className="font-bold text-slate-800 text-[15px]">Instalar app (PWA)</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">Adicione à tela inicial</p>
-               </div>
-             </div>
-             <ChevronRight className="w-5 h-5 text-slate-400" />
-           </div>
-           
-           <div className="flex items-center justify-between p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
-             <div className="flex items-center gap-3">
-               <div className="p-2 bg-slate-50 rounded-lg">
-                 <Bell className="w-5 h-5 text-slate-600" />
-               </div>
-               <h4 className="font-bold text-slate-800 text-[15px]">Notificações</h4>
-             </div>
-             <ChevronRight className="w-5 h-5 text-slate-400" />
-           </div>
-
-           <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors">
-             <div className="flex items-center gap-3">
-               <div className="p-2 bg-slate-50 rounded-lg">
-                 <Moon className="w-5 h-5 text-slate-600" />
-               </div>
-               <h4 className="font-bold text-slate-800 text-[15px]">Tema escuro</h4>
-             </div>
-             <ChevronRight className="w-5 h-5 text-slate-400" />
-           </div>
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Conta</h3>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-           <div className="flex items-center justify-between p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
-             <div className="flex items-center gap-3">
-               <div className="p-2 bg-slate-50 rounded-lg">
-                 <Shield className="w-5 h-5 text-slate-600" />
-               </div>
-               <h4 className="font-bold text-slate-800 text-[15px]">Segurança e senha</h4>
-             </div>
-             <ChevronRight className="w-5 h-5 text-slate-400" />
-           </div>
-           
-           <div className="flex items-center justify-between p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors">
-             <div className="flex items-center gap-3">
-               <div className="p-2 bg-slate-50 rounded-lg">
-                 <CreditCard className="w-5 h-5 text-slate-600" />
-               </div>
-               <h4 className="font-bold text-slate-800 text-[15px]">Cartões cadastrados</h4>
-             </div>
-             <ChevronRight className="w-5 h-5 text-slate-400" />
-           </div>
-
-           <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors">
-             <div className="flex items-center gap-3">
-               <div className="p-2 bg-slate-50 rounded-lg">
-                 <HelpCircle className="w-5 h-5 text-slate-600" />
-               </div>
-               <h4 className="font-bold text-slate-800 text-[15px]">Ajuda e suporte</h4>
-             </div>
-             <ChevronRight className="w-5 h-5 text-slate-400" />
-           </div>
-        </div>
-      </div>
+      {/* Removido seção de instalação por solicitação do usuário */}
 
       <button 
         onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-colors active:bg-red-100"
+        className="w-full flex items-center justify-center gap-3 p-6 bg-white border border-black/[0.03] rounded-[28px] font-bold text-red-500 hover:bg-red-50 transition-all active:scale-[0.98] shadow-sm tracking-tight"
       >
-        <LogOut className="w-5 h-5" />
-        Sair da conta
+        <LogOut className="w-5 h-5" strokeWidth={2.5} />
+        Sair da Conta
       </button>
     </div>
   );

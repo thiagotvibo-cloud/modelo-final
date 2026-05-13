@@ -1,11 +1,13 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Check, Target } from "lucide-react";
 import { useState } from "react";
 import { useFinance, Meta } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
+import { AddModal } from "../components/AddModal";
 
 export function Metas() {
   const { metas, updateMeta, deleteMeta } = useFinance();
   const [editingItem, setEditingItem] = useState<Meta | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleEdit = (meta: Meta) => {
     setEditingItem(meta);
@@ -19,65 +21,84 @@ export function Metas() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-bold text-slate-800">Metas</h1>
-          <p className="text-sm text-slate-500 mt-1">Acompanhe seus objetivos</p>
+          <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">Objetivos</h1>
+          <p className="text-sm text-slate-400 font-medium tracking-tight">Sua jornada para o sucesso</p>
         </div>
-        <div>
-          <button className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors">
-            <Plus className="w-5 h-5" />
-            Nova
-          </button>
-        </div>
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
       </div>
 
       <div className="space-y-4">
-        {metas.map((meta) => {
-          const perc = Math.min(100, Math.round((meta.saved / meta.target) * 100));
-          return (
-            <div 
-              key={meta.id} 
-              className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => handleEdit(meta)}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                   <h3 className="font-bold text-slate-800 text-[15px] mb-1">{meta.title}</h3>
-                   <span className="text-[11px] font-medium text-slate-500">Prazo: {meta.deadline}</span>
+        {metas.length > 0 ? (
+          metas.map((meta) => {
+            const percentage = Math.min((meta.saved / meta.target) * 100, 100);
+            return (
+              <div 
+                key={meta.id} 
+                onClick={() => handleEdit(meta)}
+                className="iphone-card p-7 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50"
+              >
+                <div className="flex items-center gap-5 mb-6">
+                  <div className="w-14 h-14 bg-slate-900 rounded-[22px] flex items-center justify-center text-white shadow-lg shadow-black/10">
+                    <Target className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-[19px] tracking-tight">{meta.title}</h3>
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.15em]">{meta.deadline}</p>
+                  </div>
                 </div>
-                 <button 
-                  onClick={(e) => { e.stopPropagation(); deleteMeta(meta.id); }}
-                  className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Acumulado</p>
+                    <p className="text-[22px] font-bold text-slate-900 leading-none tracking-tight">
+                      {meta.saved.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Objetivo</p>
+                    <p className="text-[16px] font-bold text-slate-400 leading-none tracking-tight">
+                      {meta.target.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden p-1 border border-black/[0.03]">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ease-out ${percentage >= 100 ? 'bg-green-500' : 'bg-black'}`}
+                    style={{ width: `${percentage}%` }}
+                  ></div>
+                </div>
               </div>
-              
-              <div className="flex justify-between items-end mb-2">
-                 <p className="font-bold text-green-600">{perc}%</p>
-                 <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">
-                    {meta.saved.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / {meta.target.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                 </span>
-              </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full rounded-full bg-green-500" 
-                  style={{ width: `${perc}%` }}
-                ></div>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div className="bg-white rounded-[32px] p-20 text-center border border-black/[0.02]">
+            <Target className="w-16 h-16 text-slate-200 mx-auto mb-6" />
+            <p className="text-slate-400 font-bold tracking-tight">O que você deseja conquistar?</p>
+          </div>
+        )}
       </div>
 
       <EditModal 
         isOpen={!!editingItem}
         onClose={() => setEditingItem(null)}
-        title="Editar Meta"
+        title="Editar Objetivo"
         initialData={editingItem || {}}
         onSave={handleSaveEdit}
         onDelete={() => { if(editingItem) deleteMeta(editingItem.id) }}
+      />
+
+       <AddModal 
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        defaultType="Meta"
       />
     </div>
   );

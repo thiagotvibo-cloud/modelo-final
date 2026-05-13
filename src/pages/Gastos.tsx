@@ -19,6 +19,8 @@ export function Gastos() {
     }
   };
 
+  const isPago = (gasto: Gasto) => gasto.status === 'Pago';
+
   const toggleStatus = (e: React.MouseEvent, gasto: Gasto) => {
     e.stopPropagation();
     updateGasto(gasto.id, { status: gasto.status === 'Pago' ? 'Pendente' : 'Pago' });
@@ -26,79 +28,70 @@ export function Gastos() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-bold text-slate-800">Gastos Gerais</h1>
-          <p className="text-sm text-slate-500">Controle suas despesas do mês</p>
+          <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">Gastos</h1>
+          <p className="text-sm text-slate-400 font-medium">Controle suas despesas variáveis</p>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between mb-6 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
-        <button className="text-slate-400 hover:text-slate-600 transition-colors">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <span className="text-sm font-semibold text-slate-700">Maio 2026</span>
-        <button className="text-slate-400 hover:text-slate-600 transition-colors">
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="mb-6">
         <button 
           onClick={() => setIsAdding(true)}
-          className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors"
+          className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-lg shadow-black/10 active:scale-95 transition-all"
         >
-          <Plus className="w-5 h-5" />
-          Novo Gasto
+          <Plus className="w-6 h-6" />
         </button>
       </div>
 
-      <div className="space-y-3">
-        {gastos.map((gasto) => (
-          <div 
-             key={gasto.id} 
-             onClick={() => handleEdit(gasto)}
-             className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform ${gasto.status === 'Pago' ? 'opacity-70' : ''}`}
-          >
-            <div>
-              <h3 className="font-bold text-slate-800 text-[15px] mb-0.5">{gasto.description}</h3>
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1">
-                <span className="flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  {gasto.date}
-                </span>
-                <span>•</span>
-                <span className="uppercase font-semibold">{gasto.method}</span>
-              </div>
-              {gasto.account && (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                  {gasto.account}
+      <div className="flex items-center justify-between mb-10 bg-white border border-black/[0.03] rounded-[24px] p-2 shadow-sm">
+        <button className="p-3 text-slate-300 hover:text-black hover:bg-slate-50 rounded-2xl transition-all">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <span className="text-sm font-bold text-slate-900 uppercase tracking-widest px-4">Maio 2026</span>
+        <button className="p-3 text-slate-300 hover:text-black hover:bg-slate-50 rounded-2xl transition-all">
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {gastos.length > 0 ? gastos.map((gasto) => {
+          const formattedDate = new Date(gasto.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+          const paid = isPago(gasto);
+          
+          return (
+            <div 
+               key={gasto.id} 
+               onClick={() => handleEdit(gasto)}
+               className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 ${paid ? 'opacity-50 grayscale' : ''}`}
+            >
+              <div className="flex-1">
+                <h3 className="font-bold text-slate-900 text-[17px] tracking-tight mb-2">{gasto.description}</h3>
+                <div className="flex items-center gap-3">
+                  <span className="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
+                  <span className="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.method}</span>
                 </div>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-2 text-right">
-              <p className="font-bold text-red-600 text-base">
-                {gasto.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </p>
-              <div className="flex items-center gap-2 border border-slate-200 p-0.5 rounded-lg">
-                <button 
-                  onClick={(e) => toggleStatus(e, gasto)}
-                  className={`flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold transition-colors ${gasto.status === 'Pago' ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-50 text-slate-700'}`}
-                >
-                  {gasto.status === 'Pago' ? 'Pago' : <><Check className="w-3.5 h-3.5" /> Pagar</>}
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); deleteGasto(gasto.id); }}
-                  className="p-1.5 text-red-400 hover:bg-slate-50 rounded-md transition-colors border-l border-slate-200"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
-              {gasto.status === 'Pendente' && <span className="text-[10px] font-bold text-yellow-600">Pendente</span>}
+              <div className="flex flex-col items-end gap-3 ml-4">
+                <p className="font-bold text-red-500 text-[18px] tracking-tight">
+                  {gasto.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={(e) => toggleStatus(e, gasto)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${paid ? 'bg-green-500 text-white' : 'bg-black text-white hover:bg-zinc-800'}`}
+                  >
+                    {paid ? <Check className="w-4 h-4 stroke-[3]" /> : 'Pagar'}
+                  </button>
+                </div>
+              </div>
             </div>
+          );
+        }) : (
+          <div className="bg-white rounded-[32px] p-16 flex flex-col items-center justify-center text-center border border-black/[0.02]">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+              <Plus className="w-10 h-10 text-slate-200" />
+            </div>
+            <p className="text-slate-400 font-bold tracking-tight">Vazio por enquanto...</p>
           </div>
-        ))}
+        )}
       </div>
 
       <EditModal 

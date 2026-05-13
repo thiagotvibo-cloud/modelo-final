@@ -37,77 +37,76 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F2F2F7] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center flex-col items-center gap-2">
-          <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center">
-            <Wallet className="w-8 h-8 text-white" />
+        <div className="flex justify-center flex-col items-center gap-4">
+          <div className="dark-gradient w-20 h-20 rounded-[28px] flex items-center justify-center shadow-2xl shadow-black/20">
+            <Wallet className="w-10 h-10 text-white" />
           </div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-slate-900">
-            Finança+
-          </h2>
+          <div className="text-center">
+            <h2 className="text-[32px] font-bold text-black tracking-tight leading-none">
+              Finança+
+            </h2>
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-2">{isLogin ? 'Bem-vindo de volta' : 'Comece sua jornada'}</p>
+          </div>
         </div>
-        <h2 className="mt-6 text-center text-2xl font-bold text-slate-900">
-          {isLogin ? 'Acesse sua conta' : 'Crie sua conta'}
-        </h2>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleAuth}>
+      <div className="mt-12 sm:mx-auto sm:w-full sm:max-w-md px-6">
+        <div className="iphone-card py-10 px-8 sm:px-12">
+          <form className="space-y-8" onSubmit={handleAuth}>
             {error && (
-              <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm">
+              <div className="bg-red-50 text-red-500 p-4 rounded-2xl text-sm font-bold border border-red-100 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
                 {error}
               </div>
             )}
             
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Email
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                E-mail
               </label>
-              <div className="mt-1">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm"
-                />
-              </div>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="w-full bg-slate-50 border-2 border-transparent px-5 py-4 rounded-2xl text-slate-900 font-bold focus:outline-none focus:border-black focus:bg-white transition-all placeholder:text-slate-200"
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">
                 Senha
               </label>
-              <div className="mt-1">
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm"
-                />
-              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-slate-50 border-2 border-transparent px-5 py-4 rounded-2xl text-slate-900 font-bold focus:outline-none focus:border-black focus:bg-white transition-all placeholder:text-slate-200"
+              />
             </div>
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50"
+                className="w-full h-16 bg-black active:scale-[0.97] text-white font-bold rounded-[22px] transition-all shadow-xl shadow-black/10 text-[17px] tracking-tight disabled:opacity-50"
               >
-                {loading ? 'Carregando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
+                {loading ? 'Processando...' : (isLogin ? 'Entrar Agora' : 'Criar Conta')}
               </button>
             </div>
           </form>
 
-          <div className="mt-6">
+          <div className="mt-8">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="w-full text-center text-sm text-slate-600 hover:text-slate-900"
+              className="w-full text-center text-[13px] font-bold text-slate-400 hover:text-black uppercase tracking-widest transition-colors"
             >
-              {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
+              {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}
             </button>
           </div>
         </div>
