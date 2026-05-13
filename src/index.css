@@ -1,17 +1,95 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", -apple-system, system-ui, sans-serif;
   --color-primary: #000000;
-  --color-accent: #1C1C1E;
-  --color-ios-blue: #0A84FF;
-  --color-ios-green: #34C759;
-  --color-ios-red: #FF3B30;
+  --color-accent: #1c1c1e;
+  --color-ios-blue: #0a84ff;
+  --color-ios-green: #34c759;
+  --color-ios-red: #ff3b30;
+}
+
+.dark .bg-slate-50 {
+  background-color: #2c2c2e !important;
+}
+.dark .hover\:bg-slate-50:hover {
+  background-color: #3a3a3c !important;
+}
+.dark .bg-white {
+  background-color: #2c2c2e !important;
+}
+.dark .bg-black\/5 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.dark .bg-slate-100 {
+  background-color: #3a3a3c !important;
+}
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-slate-600 {
+  color: #ffffff !important;
+}
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-slate-300,
+.dark .text-slate-200,
+.dark .text-slate-100 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+.dark .border-black\/\[0\.03\] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark .border-black\/10 {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.dark .border-slate-50,
+.dark .border-slate-100,
+.dark .border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .text-black {
+  color: #ffffff !important;
+}
+.dark .hover\:text-black:hover {
+  color: #ffffff !important;
+}
+.dark .focus\:border-black:focus {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.dark .bg-black {
+  background-color: #ffffff !important;
+  color: #1c1c1e !important;
+}
+.dark .bg-black.text-white {
+  color: #1c1c1e !important;
+}
+.dark .bg-black .text-white {
+  color: #1c1c1e !important;
 }
 
 @layer base {
+  :root {
+    --app-bg: #f2f2f7;
+    --app-card: #ffffff;
+    --app-text: #1c1c1e;
+  }
+  .dark {
+    --app-bg: #1f1f1f;
+    --app-card: #2c2c2e;
+    --app-text: #f8fafc;
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-[#F2F2F7] antialiased text-[#1C1C1E] m-0 p-0 selection:bg-black/10;
+    @apply bg-[var(--app-bg)] antialiased text-[var(--app-text)] m-0 p-0 selection:bg-black/10 dark:selection:bg-white/10 transition-colors duration-300;
     -webkit-tap-highlight-color: transparent;
   }
 }
@@ -27,11 +105,17 @@
 }
 
 .iphone-card {
-  @apply bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.04] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)];
+  @apply bg-[var(--app-card)] rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-black/[0.04] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)];
+}
+.dark .iphone-card {
+  @apply shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-white/5;
 }
 
 .active-card {
   @apply shadow-[0_20px_50px_rgba(0,0,0,0.1)] scale-[1.02] border-black/[0.08];
+}
+.dark .active-card {
+  @apply shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-white/10;
 }
 
 .iphone-button {
@@ -39,17 +123,54 @@
 }
 
 .dark-gradient {
-  background: linear-gradient(145deg, #1C1C1E 0%, #000000 100%);
+  background: linear-gradient(145deg, #1c1c1e 0%, #000000 100%);
 }
 
 .glass {
-  @apply backdrop-blur-xl bg-white/70 border-b border-black/[0.05];
+  @apply backdrop-blur-xl bg-[var(--app-card)] border-b border-black/[0.05];
+  background-color: color-mix(in srgb, var(--app-card) 70%, transparent);
+}
+.dark .glass {
+  @apply border-white/5;
 }
 
 .premium-shadow {
   @apply shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)];
 }
+.dark .premium-shadow {
+  @apply shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)];
+}
 
-input:focus, select:focus, textarea:focus {
+input,
+select,
+textarea {
+  @apply bg-transparent text-[var(--app-text)] transition-colors duration-300;
+}
+.dark input,
+.dark select,
+.dark textarea {
+  @apply bg-[#1F1F1F]/50 border-white/5;
+}
+.dark input::placeholder,
+.dark select::placeholder,
+.dark textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.dark .text-slate-300::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50 {
+  @apply !bg-black/20 !border-white/10;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
   @apply ring-2 ring-black/5 border-black/10 transition-all outline-none;
+}
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  @apply ring-white/10 border-white/20;
 }

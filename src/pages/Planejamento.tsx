@@ -42,30 +42,30 @@ export function Planejamento() {
             return (
               <div 
                 key={orcamento.id} 
-                className="iphone-card p-7 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50"
+                className="iphone-card p-7 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235]"
                 onClick={() => handleEdit(orcamento)}
               >
                 <div className="flex justify-between items-start mb-6">
-                  <h3 className="font-bold text-slate-900 text-[19px] tracking-tight">{orcamento.category}</h3>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-[19px] tracking-tight">{orcamento.category}</h3>
                   <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${isOverLimit ? 'bg-red-500 text-white' : 'bg-green-500 text-white shadow-lg shadow-green-500/10'}`}>
                     {isOverLimit ? 'Excedido' : 'No Prazo'}
                   </div>
                 </div>
                 
                 <div className="flex justify-between items-end mb-4">
-                   <p className={`text-3xl font-bold tracking-tight ${isOverLimit ? 'text-red-500' : 'text-slate-900'}`}>
+                   <p className={`text-3xl font-bold tracking-tight ${isOverLimit ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>
                      {perc}%
                    </p>
                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Gasto vs Limite</p>
-                      <p className="text-sm font-bold text-slate-600 tracking-tight">
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Gasto vs Limite</p>
+                      <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-tight">
                         {orcamento.spent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de {orcamento.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </p>
                    </div>
                 </div>
-                <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden p-1 border border-black/[0.03]">
+                <div className="h-4 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden p-1 border border-black/[0.03] dark:border-white/5">
                   <div 
-                    className={`h-full rounded-full transition-all duration-1000 ease-out ${isOverLimit ? 'bg-red-500' : 'bg-black'}`} 
+                    className={`h-full rounded-full transition-all duration-1000 ease-out ${isOverLimit ? 'bg-red-500' : 'bg-black dark:bg-white'}`} 
                     style={{ width: `${perc}%` }}
                   ></div>
                 </div>

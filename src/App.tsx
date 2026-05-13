@@ -16,11 +16,13 @@ import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Login } from "./pages/Login";
 
+import { ThemeProvider } from "./contexts/ThemeContext";
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Carregando...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#1F1F1F] text-slate-500">Carregando...</div>;
   }
   
   if (!user) {
@@ -32,10 +34,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <FinanceProvider>
-        <BrowserRouter>
-          <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <FinanceProvider>
+          <BrowserRouter>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/resumo" replace />} />
@@ -55,6 +58,7 @@ export default function App() {
         </BrowserRouter>
       </FinanceProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

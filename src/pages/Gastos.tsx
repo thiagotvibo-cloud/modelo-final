@@ -9,6 +9,29 @@ export function Gastos() {
   const { gastos, updateGasto, deleteGasto } = useFinance();
   const [editingItem, setEditingItem] = useState<Gasto | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getSafeDate = (dateStr: string) => {
+    const datePart = dateStr.split('T')[0];
+    const [y, m, d] = datePart.split('-');
+    return new Date(Number(y), Number(m) - 1, Number(d), 12, 0, 0);
+  };
+
+  const filterByDate = (dateStr: string) => {
+    const date = getSafeDate(dateStr);
+    return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+  };
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
+  };
+
+  const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+  const currentGastos = gastos.filter(g => filterByDate(g.date));
 
   const handleEdit = (gasto: Gasto) => {
     setEditingItem(gasto);
@@ -42,18 +65,18 @@ export function Gastos() {
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-10 bg-white border border-black/[0.03] rounded-[24px] p-2 shadow-sm">
-        <button className="p-3 text-slate-300 hover:text-black hover:bg-slate-50 rounded-2xl transition-all">
+      <div className="flex items-center justify-between mb-10 bg-white dark:bg-[#2C2C2E] border border-black/[0.03] dark:border-white/5 rounded-[24px] p-2 shadow-sm">
+        <button onClick={() => changeMonth(-1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <span className="text-sm font-bold text-slate-900 uppercase tracking-widest px-4">Maio 2026</span>
-        <button className="p-3 text-slate-300 hover:text-black hover:bg-slate-50 rounded-2xl transition-all">
+        <span className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest px-4">{capitalizedMonth}</span>
+        <button onClick={() => changeMonth(1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 
       <div className="space-y-4">
-        {gastos.length > 0 ? gastos.map((gasto) => {
+        {currentGastos.length > 0 ? currentGastos.map((gasto) => {
           const formattedDate = formatDateShort(gasto.date);
           const paid = isPago(gasto);
           
@@ -64,10 +87,13 @@ export function Gastos() {
                className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 ${paid ? 'opacity-50 grayscale' : ''}`}
             >
               <div className="flex-1">
-                <h3 className="font-bold text-slate-900 text-[17px] tracking-tight mb-2">{gasto.description}</h3>
-                <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
-                  <span className="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.method}</span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2">{gasto.description}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
+                  <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.method}</span>
+                  {gasto.category && gasto.category !== "Outros" && (
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.category}</span>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-3 ml-4">
@@ -77,7 +103,7 @@ export function Gastos() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={(e) => toggleStatus(e, gasto)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${paid ? 'bg-green-500 text-white' : 'bg-black text-white hover:bg-zinc-800'}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${paid ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-slate-200'}`}
                   >
                     {paid ? <Check className="w-4 h-4 stroke-[3]" /> : 'Pagar'}
                   </button>

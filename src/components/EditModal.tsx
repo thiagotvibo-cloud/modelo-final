@@ -41,13 +41,13 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 z-[100] flex flex-col justify-end sm:justify-center items-center">
-      <div className="bg-white w-full max-w-lg rounded-t-[32px] sm:rounded-[32px] p-6 pb-12 sm:pb-8 shadow-2xl relative animate-in slide-in-from-bottom-full duration-300">
-        <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6 sm:hidden pointer-events-none"></div>
+    <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/80 backdrop-blur-sm z-[100] flex flex-col justify-end sm:justify-center items-center">
+      <div className="bg-white dark:bg-[#1F1F1F] w-full max-w-lg rounded-t-[32px] sm:rounded-[32px] p-6 pb-12 sm:pb-8 shadow-2xl relative animate-in slide-in-from-bottom-full duration-300 border border-transparent dark:border-white/10">
+        <div className="w-12 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full mx-auto mb-6 sm:hidden pointer-events-none"></div>
         
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -94,7 +94,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                           name={key}
                           value={val || ''}
                           onChange={handleChange}
-                          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#007AFF] bg-slate-50"
+                          className="w-full border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-800 dark:text-white focus:outline-none focus:border-black bg-slate-50 dark:bg-[#2C2C2E]"
                         >
                           <option value="Pago">Pago / Recebido</option>
                           <option value="Recebido">Recebido</option>
@@ -113,7 +113,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                         name={key}
                         value={isDate && val ? (!isNaN(Date.parse(String(val))) ? new Date(String(val)).toISOString().split('T')[0] : '') : (val !== undefined && val !== null ? val : '')} 
                         onChange={handleChange}
-                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#007AFF] bg-slate-50"
+                        className="w-full border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-800 dark:text-white focus:outline-none focus:border-black bg-slate-50 dark:bg-[#2C2C2E]"
                       />
                     </div>
                   );
@@ -124,14 +124,14 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
             {onDelete && (
               <button 
                 onClick={handleDelete}
-                className="w-1/3 bg-red-100 hover:bg-red-200 text-red-600 font-bold py-3.5 rounded-xl transition-colors"
+                className="w-1/3 bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-xl transition-colors"
               >
                 Excluir
               </button>
             )}
             <button 
               onClick={handleSave}
-              className={`${onDelete ? 'w-2/3' : 'w-full'} mt-0 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition-colors`}
+              className={`${onDelete ? 'w-2/3' : 'w-full'} mt-0 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-black font-bold py-3.5 rounded-xl transition-colors`}
             >
               Salvar
             </button>

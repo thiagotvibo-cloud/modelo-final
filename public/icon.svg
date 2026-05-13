@@ -1,4 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0f172a" rx="100" />
-  <path fill="#ffffff" d="M160 160h192v192H160z" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#ffffff" rx="100" />
+  
+  <!-- Piggy Body -->
+  <path d="M433 346 C 452 301, 442 227, 401 183 C 359 139, 290 120, 230 134 C 185 145, 149 184, 137 230 C 120 293, 150 357, 210 382 C 270 407, 340 398, 388 359 C 406 344, 421 346, 433 346 Z" fill="#ffffff" stroke="#1e293b" stroke-width="24" stroke-linejoin="round"/>
+  
+  <!-- Pig Snout -->
+  <ellipse cx="110" cy="280" rx="40" ry="70" fill="#ffffff" stroke="#1e293b" stroke-width="24" transform="rotate(-30 110 280)"/>
+  <circle cx="95" cy="270" r="8" fill="#1e293b" />
+  <circle cx="115" cy="305" r="8" fill="#1e293b" />
+  
+  <!-- Ear 1 -->
+  <path d="M190 145 L 160 80 L 230 110 Z" fill="#ffffff" stroke="#1e293b" stroke-width="24" stroke-linejoin="round"/>
+  
+  <!-- Ear 2 (Back) -->
+  <path d="M250 115 L 260 70 L 300 90 Z" fill="#ffffff" stroke="#1e293b" stroke-width="20" stroke-linejoin="round" opacity="0.8"/>
+  
+  <!-- Eye -->
+  <circle cx="210" cy="200" r="14" fill="#1e293b" />
+  
+  <!-- Coin Slot -->
+  <path d="M260 110 Q 320 90 380 120" fill="none" stroke="#1e293b" stroke-width="20" stroke-linecap="round"/>
+  
+  <!-- Tail -->
+  <path d="M420 280 Q 480 250 460 310 T 490 340" fill="none" stroke="#1e293b" stroke-width="20" stroke-linecap="round"/>
+  
+  <!-- Feet -->
+  <path d="M200 375 L 180 430 L 230 430 L 240 385" fill="#ffffff" stroke="#1e293b" stroke-width="24" stroke-linejoin="round"/>
+  <path d="M330 380 L 320 430 L 370 430 L 380 370" fill="#ffffff" stroke="#1e293b" stroke-width="24" stroke-linejoin="round"/>
+  
+  <!-- Dollar Sign -->
+  <text x="310" y="320" font-family="Arial, sans-serif" font-weight="900" font-size="140" fill="#1e293b" text-anchor="middle">$</text>
 </svg>

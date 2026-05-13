@@ -1,3 +1,4 @@
+import { getLocalYYYYMMDD } from "../lib/utils";
 import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useFinance } from "../contexts/FinanceContext";
@@ -13,7 +14,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
   
   const [description, setDescription] = useState("");
   const [value, setValue] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(getLocalYYYYMMDD());
   const [type, setType] = useState(defaultType);
   const [category, setCategory] = useState("Outros");
   const [method, setMethod] = useState("Pix");
@@ -31,7 +32,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       setType(defaultType);
       setDescription("");
       setValue("");
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getLocalYYYYMMDD());
       setIsPaid(false);
       setCategory("Outros");
       setMethod("Pix");
@@ -49,7 +50,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
     const numValue = Number(value.replace(/,/g, '.'));
     const numTarget = Number(target.replace(/,/g, '.'));
     const numLimit = Number(limit.replace(/,/g, '.'));
-    const parsedDate = !isNaN(Date.parse(date)) ? new Date(date).toISOString() : new Date().toISOString();
+    const parsedDate = date // 'YYYY-MM-DD'
+      ? `${date}T12:00:00Z` // Store as noon UTC to avoid missing days
+      : `${getLocalYYYYMMDD()}T12:00:00Z`;
 
     if (type === 'Gasto') {
       if (!description || isNaN(numValue)) return;
@@ -58,7 +61,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         value: numValue,
         date: parsedDate,
         method,
-        status: isPaid ? 'Pago' : 'Pendente'
+        status: isPaid ? 'Pago' : 'Pendente',
+        category
       });
     } else if (type === 'Receita') {
       if (!description || isNaN(numValue)) return;
@@ -129,12 +133,12 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 z-[100] flex flex-col justify-end sm:justify-center items-center backdrop-blur-md px-0 sm:px-4">
-      <div className="bg-white w-full max-w-lg rounded-t-[42px] sm:rounded-[32px] p-6 sm:p-9 shadow-2xl relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 duration-500 max-h-[94vh] flex flex-col">
-        <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8 sm:hidden pointer-events-none"></div>
+      <div className="bg-white dark:bg-[#2C2C2E] w-full max-w-lg rounded-t-[42px] sm:rounded-[32px] p-6 sm:p-9 shadow-2xl relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 duration-500 max-h-[94vh] flex flex-col transition-colors duration-300">
+        <div className="w-12 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full mx-auto mb-8 sm:hidden pointer-events-none"></div>
         
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-[22px] font-bold text-black tracking-tight">Novo Lançamento</h2>
-          <button onClick={onClose} className="p-2.5 text-slate-300 hover:text-black hover:bg-slate-50 rounded-full transition-all">
+          <h2 className="text-[22px] font-bold text-black dark:text-white tracking-tight">Novo Lançamento</h2>
+          <button onClick={onClose} className="p-2.5 text-slate-300 dark:text-slate-500 hover:text-black dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition-all">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -207,7 +211,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
           ) : (
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">
-                {['Investimento', 'Conta'].includes(type) ? 'Valor Atual' : 'Quanto sumiu?'}
+                {['Investimento', 'Conta'].includes(type) ? 'Valor Atual' : 'Quanto foi?'}
               </label>
               <div className="relative">
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">R$</span>

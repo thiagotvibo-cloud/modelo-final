@@ -43,35 +43,35 @@ export function Dividas() {
             <div 
               key={divida.id} 
               onClick={() => handleEdit(divida)}
-              className="iphone-card p-7 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50"
+              className="iphone-card p-7 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235]"
             >
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-[19px] tracking-tight mb-2">{divida.description}</h3>
-                  <div className="bg-slate-100 inline-block px-3 py-1.5 rounded-lg">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-[19px] tracking-tight mb-2">{divida.description}</h3>
+                  <div className="bg-slate-100 dark:bg-white/5 inline-block px-3 py-1.5 rounded-lg">
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">
                       Taxa: {divida.interestRate || 0}% a.m.
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-slate-900 tracking-tight leading-none mb-1">
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none mb-1">
                     {divida.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </p>
                   <p className="text-[11px] font-bold text-green-500 uppercase tracking-widest">Pago: {divida.paidAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                 </div>
               </div>
               
-              <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden mb-4 p-1 border border-black/[0.03]">
+              <div className="h-4 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden mb-4 p-1 border border-black/[0.03] dark:border-white/5">
                 <div 
-                  className="h-full rounded-full bg-black transition-all duration-1000 ease-out" 
+                  className="h-full rounded-full bg-black dark:bg-white transition-all duration-1000 ease-out" 
                   style={{ width: `${perc}%` }}
                 ></div>
               </div>
 
               <div className="flex justify-between items-center text-[12px] font-bold uppercase tracking-[0.1em]">
-                 <span className="text-slate-400">{perc}% quitado</span>
-                 <span className="text-red-500 bg-red-50 px-3 py-1.5 rounded-lg">FALTAM: {remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                 <span className="text-slate-400 dark:text-slate-500">{perc}% quitado</span>
+                 <span className="text-red-500 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-lg">FALTAM: {remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
               </div>
             </div>
           );

@@ -1,4 +1,4 @@
-import { Plus, Check, Pencil, Trash2, CreditCard } from "lucide-react";
+import { Plus, Check, Pencil, Trash2, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 import { useFinance, Parcela } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
@@ -9,6 +9,29 @@ export function Parcelas() {
   const { parcelas, updateParcela, deleteParcela } = useFinance();
   const [editingItem, setEditingItem] = useState<Parcela | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getSafeDate = (dateStr: string) => {
+    const datePart = dateStr.split('T')[0];
+    const [y, m, d] = datePart.split('-');
+    return new Date(Number(y), Number(m) - 1, Number(d), 12, 0, 0);
+  };
+
+  const filterByDate = (dateStr: string) => {
+    const date = getSafeDate(dateStr);
+    return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+  };
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
+  };
+
+  const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+  const currentParcelas = parcelas.filter(p => filterByDate(p.date));
 
   const handleEdit = (parcela: Parcela) => {
     setEditingItem(parcela);
@@ -27,7 +50,7 @@ export function Parcelas() {
 
   const [activeTab, setActiveTab] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>('Parcela');
 
-  const filteredParcelas = parcelas.filter(p => p.type === activeTab);
+  const filteredParcelas = currentParcelas.filter(p => p.type === activeTab);
 
   return (
     <div className="w-full">
@@ -41,6 +64,16 @@ export function Parcelas() {
           className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
         >
           <Plus className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between mb-6 bg-white dark:bg-[#2C2C2E] border border-black/[0.03] dark:border-white/5 rounded-[24px] p-2 shadow-sm">
+        <button onClick={() => changeMonth(-1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <span className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest px-4">{capitalizedMonth}</span>
+        <button onClick={() => changeMonth(1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
+          <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 

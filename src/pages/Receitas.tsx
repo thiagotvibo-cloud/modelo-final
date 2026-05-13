@@ -9,6 +9,29 @@ export function Receitas() {
   const { receitas, updateReceita, deleteReceita } = useFinance();
   const [editingItem, setEditingItem] = useState<Receita | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getSafeDate = (dateStr: string) => {
+    const datePart = dateStr.split('T')[0];
+    const [y, m, d] = datePart.split('-');
+    return new Date(Number(y), Number(m) - 1, Number(d), 12, 0, 0);
+  };
+
+  const filterByDate = (dateStr: string) => {
+    const date = getSafeDate(dateStr);
+    return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+  };
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
+  };
+
+  const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+  const currentReceitas = receitas.filter(r => filterByDate(r.date));
 
   const handleEdit = (receita: Receita) => {
     setEditingItem(receita);
@@ -25,8 +48,8 @@ export function Receitas() {
     updateReceita(receita.id, { status: receita.status === 'Recebido' ? 'Previsto' : 'Recebido' });
   };
 
-  const totalRecebido = receitas.filter(r => r.status === 'Recebido').reduce((acc, curr) => acc + curr.value, 0);
-  const totalPrevisto = receitas.reduce((acc, curr) => acc + curr.value, 0);
+  const totalRecebido = currentReceitas.filter(r => r.status === 'Recebido').reduce((acc, curr) => acc + curr.value, 0);
+  const totalPrevisto = currentReceitas.reduce((acc, curr) => acc + curr.value, 0);
 
   const isRecebido = (receita: Receita) => receita.status === 'Recebido';
 
@@ -45,12 +68,12 @@ export function Receitas() {
         </button>
       </div>
 
-       <div className="flex items-center justify-between mb-10 bg-white border border-black/[0.03] rounded-[24px] p-2 shadow-sm">
-        <button className="p-3 text-slate-300 hover:text-black hover:bg-slate-50 rounded-2xl transition-all">
+       <div className="flex items-center justify-between mb-10 bg-white dark:bg-[#2C2C2E] border border-black/[0.03] dark:border-white/5 rounded-[24px] p-2 shadow-sm">
+        <button onClick={() => changeMonth(-1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <span className="text-sm font-bold text-slate-900 uppercase tracking-widest px-4">Maio 2026</span>
-        <button className="p-3 text-slate-300 hover:text-black hover:bg-slate-50 rounded-2xl transition-all">
+        <span className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest px-4">{capitalizedMonth}</span>
+        <button onClick={() => changeMonth(1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
@@ -67,7 +90,7 @@ export function Receitas() {
       </div>
 
       <div className="space-y-4">
-        {receitas.length > 0 ? receitas.map((receita) => {
+        {currentReceitas.length > 0 ? currentReceitas.map((receita) => {
           const formattedDate = formatDateShort(receita.date);
           const received = isRecebido(receita);
           

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 
-export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; };
+export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; };
 export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; };
 export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; };
 

@@ -19,7 +19,19 @@ export function formatDate(dateString: string) {
 
 export function formatDateShort(dateString: string | undefined) {
   if (!dateString) return 'S/ Data';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Data Inválida';
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  try {
+    // Attempt to extract YYYY-MM-DD to avoid timezone shift
+    const datePart = dateString.split('T')[0];
+    const [year, month, day] = datePart.split('-');
+    const date = new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0); // Noon to be safe
+    if (isNaN(date.getTime())) return 'Data Inválida';
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  } catch(e) {
+    return 'Data Inválida';
+  }
+}
+
+export function getLocalYYYYMMDD() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
