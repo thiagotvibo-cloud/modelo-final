@@ -4,6 +4,7 @@ import { useFinance, Receita } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { formatDateShort } from "../lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Receitas() {
   const { receitas, updateReceita, deleteReceita } = useFinance();
@@ -79,57 +80,69 @@ export function Receitas() {
       </div>
 
       <div className="grid grid-cols-2 gap-5 mb-10">
-        <div className="bg-white p-6 rounded-[28px] border border-black/[0.03] shadow-sm flex flex-col">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">PREVISTO</h3>
-          <p className="text-[20px] font-bold text-slate-900 tracking-tight">{totalPrevisto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+        <div className="bg-white dark:bg-[#2C2C2E] p-6 rounded-[28px] border border-black/[0.03] dark:border-white/5 shadow-sm flex flex-col">
+          <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">PREVISTO</h3>
+          <p className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{totalPrevisto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
         </div>
-        <div className="bg-white p-6 rounded-[28px] border border-black/[0.03] shadow-sm flex flex-col">
-          <h3 className="text-[10px] font-bold text-green-500 uppercase tracking-widest mb-1.5">RECEBIDO</h3>
-          <p className="text-[20px] font-bold text-green-600 tracking-tight">{totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+        <div className="bg-white dark:bg-[#2C2C2E] p-6 rounded-[28px] border border-black/[0.03] dark:border-white/5 shadow-sm flex flex-col">
+          <h3 className="text-[10px] font-bold text-green-500 dark:text-green-400 uppercase tracking-widest mb-1.5">RECEBIDO</h3>
+          <p className="text-[20px] font-bold text-green-600 dark:text-green-500 tracking-tight">{totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {currentReceitas.length > 0 ? currentReceitas.map((receita) => {
-          const formattedDate = formatDateShort(receita.date);
-          const received = isRecebido(receita);
-          
-          return (
-            <div 
-               key={receita.id}
-               onClick={() => handleEdit(receita)}
-               className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 ${received ? 'opacity-40 grayscale' : ''}`}
-            >
-              <div className="flex-1">
-                <h3 className="font-bold text-slate-800 text-[17px] tracking-tight mb-2">{receita.description}</h3>
-                <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-[10px] font-bold text-slate-500 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{formattedDate}</span>
-                  <span className="bg-slate-100 text-[10px] font-bold text-slate-500 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{receita.category}</span>
+        <AnimatePresence mode="popLayout">
+          {currentReceitas.length > 0 ? currentReceitas.map((receita, index) => {
+            const formattedDate = formatDateShort(receita.date);
+            const received = isRecebido(receita);
+            
+            return (
+              <motion.div 
+                 layout
+                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                 exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
+                 transition={{ duration: 0.25, delay: index * 0.05 }}
+                 key={receita.id}
+                 onClick={() => handleEdit(receita)}
+                 className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${received ? 'opacity-40 grayscale' : ''}`}
+              >
+                <div className="flex-1">
+                  <h3 className="font-bold text-slate-800 dark:text-white text-[17px] tracking-tight mb-2">{receita.description}</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{formattedDate}</span>
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{receita.category}</span>
+                  </div>
                 </div>
+                <div className="flex flex-col items-end gap-3 ml-4">
+                   <p className="font-bold text-green-600 dark:text-green-500 text-[18px] tracking-tight leading-none">
+                     {receita.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                   </p>
+                   <div className="flex items-center gap-2">
+                      <button 
+                        onClick={(e) => toggleStatus(e, receita)}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${received ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-slate-200'}`}
+                      >
+                        {received ? <Check className="w-4 h-4 stroke-[3]" /> : 'Recebido?'}
+                      </button>
+                   </div>
+                </div>
+              </motion.div>
+            );
+          }) : (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-[#2C2C2E] rounded-[40px] p-20 flex flex-col items-center justify-center text-center border border-black/[0.02] dark:border-white/5"
+            >
+               <div className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
+                <Plus className="w-10 h-10 text-slate-200 dark:text-slate-600" />
               </div>
-              <div className="flex flex-col items-end gap-3 ml-4">
-                 <p className="font-bold text-green-600 text-[18px] tracking-tight leading-none">
-                   {receita.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                 </p>
-                 <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => toggleStatus(e, receita)}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${received ? 'bg-green-500 text-white' : 'bg-black text-white hover:bg-zinc-800'}`}
-                    >
-                      {received ? <Check className="w-4 h-4 stroke-[3]" /> : 'Recebido?'}
-                    </button>
-                 </div>
-              </div>
-            </div>
-          );
-        }) : (
-          <div className="bg-white rounded-[40px] p-20 flex flex-col items-center justify-center text-center border border-black/[0.02]">
-             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-              <Plus className="w-10 h-10 text-slate-200" />
-            </div>
-            <p className="text-slate-400 font-bold tracking-tight">Nenhuma receita lançada.</p>
-          </div>
-        )}
+              <p className="text-slate-400 font-bold tracking-tight">Nenhuma receita lançada.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <EditModal 

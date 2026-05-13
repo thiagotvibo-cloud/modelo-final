@@ -11,6 +11,15 @@ export type Divida = { id: string; description: string; totalAmount: number; pai
 export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; };
 export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; };
 
+export type NotificationSettings = {
+  enabled: boolean;
+  gastos: boolean;
+  parcelas: boolean;
+  receitas: boolean;
+  metas: boolean;
+  orcamentos: boolean;
+};
+
 export type FinanceContextType = {
   gastos: Gasto[];
   receitas: Receita[];
@@ -20,6 +29,7 @@ export type FinanceContextType = {
   dividas: Divida[];
   investimentos: Investimento[];
   contas: Conta[];
+  notificationSettings: NotificationSettings;
   addGasto: (data: Omit<Gasto, 'id'>) => void;
   addReceita: (data: Omit<Receita, 'id'>) => void;
   addParcela: (data: Omit<Parcela, 'id'>) => void;
@@ -44,6 +54,7 @@ export type FinanceContextType = {
   deleteDivida: (id: string) => void;
   deleteInvestimento: (id: string) => void;
   deleteConta: (id: string) => void;
+  updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
 };
 
 const defaultGastos: Gasto[] = [];
@@ -54,6 +65,15 @@ const defaultMetas: Meta[] = [];
 const defaultDividas: Divida[] = [];
 const defaultInvestimentos: Investimento[] = [];
 const defaultContas: Conta[] = [];
+
+const defaultNotificationSettings: NotificationSettings = {
+  enabled: true,
+  gastos: true,
+  parcelas: true,
+  receitas: true,
+  metas: true,
+  orcamentos: true,
+};
 
 function usePersistentState<T>(key: string, defaultValue: T, tableName: string): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
@@ -103,6 +123,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [dividas, setDividas] = usePersistentState<Divida[]>('financa_dividas', defaultDividas, 'dividas');
   const [investimentos, setInvestimentos] = usePersistentState<Investimento[]>('financa_investimentos', defaultInvestimentos, 'investimentos');
   const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas');
+  const [notificationSettings, setNotificationSettings] = usePersistentState<NotificationSettings>('financa_notification_settings', defaultNotificationSettings, 'notification_settings');
 
   const syncUpsert = async (table: string, id: string, data: any) => {
     if (supabase) {
@@ -270,13 +291,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncDelete('contas', id);
   };
 
+  const updateNotificationSettings = (settings: Partial<NotificationSettings>) => {
+    setNotificationSettings(prev => {
+      const newSettings = { ...prev, ...settings };
+      syncUpsert('notification_settings', 'default', newSettings);
+      return newSettings;
+    });
+  };
+
   return (
     <FinanceContext.Provider value={{ 
       gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas,
+      notificationSettings,
       addGasto, addReceita, addParcela, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
       updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento,
-      updateConta, deleteConta
+      updateConta, deleteConta, updateNotificationSettings
     }}>
       {children}
     </FinanceContext.Provider>

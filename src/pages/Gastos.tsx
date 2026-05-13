@@ -4,6 +4,7 @@ import { useFinance, Gasto } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { formatDateShort } from "../lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Gastos() {
   const { gastos, updateGasto, deleteGasto } = useFinance();
@@ -76,49 +77,61 @@ export function Gastos() {
       </div>
 
       <div className="space-y-4">
-        {currentGastos.length > 0 ? currentGastos.map((gasto) => {
-          const formattedDate = formatDateShort(gasto.date);
-          const paid = isPago(gasto);
-          
-          return (
-            <div 
-               key={gasto.id} 
-               onClick={() => handleEdit(gasto)}
-               className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 ${paid ? 'opacity-50 grayscale' : ''}`}
+        <AnimatePresence mode="popLayout">
+          {currentGastos.length > 0 ? currentGastos.map((gasto, index) => {
+            const formattedDate = formatDateShort(gasto.date);
+            const paid = isPago(gasto);
+            
+            return (
+              <motion.div 
+                 layout
+                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                 exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
+                 transition={{ duration: 0.25, delay: index * 0.05 }}
+                 key={gasto.id} 
+                 onClick={() => handleEdit(gasto)}
+                 className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${paid ? 'opacity-50 grayscale' : ''}`}
+              >
+                <div className="flex-1">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2">{gasto.description}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.method}</span>
+                    {gasto.category && gasto.category !== "Outros" && (
+                      <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.category}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-3 ml-4">
+                  <p className="font-bold text-red-500 text-[18px] tracking-tight">
+                    {gasto.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => toggleStatus(e, gasto)}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${paid ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-slate-200'}`}
+                    >
+                      {paid ? <Check className="w-4 h-4 stroke-[3]" /> : 'Pagar'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          }) : (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-[#2C2C2E] rounded-[32px] p-16 flex flex-col items-center justify-center text-center border border-black/[0.02] dark:border-white/5"
             >
-              <div className="flex-1">
-                <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2">{gasto.description}</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
-                  <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.method}</span>
-                  {gasto.category && gasto.category !== "Outros" && (
-                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.category}</span>
-                  )}
-                </div>
+              <div className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
+                <Plus className="w-10 h-10 text-slate-200 dark:text-slate-600" />
               </div>
-              <div className="flex flex-col items-end gap-3 ml-4">
-                <p className="font-bold text-red-500 text-[18px] tracking-tight">
-                  {gasto.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={(e) => toggleStatus(e, gasto)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-bold transition-all shadow-sm ${paid ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-slate-200'}`}
-                  >
-                    {paid ? <Check className="w-4 h-4 stroke-[3]" /> : 'Pagar'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        }) : (
-          <div className="bg-white rounded-[32px] p-16 flex flex-col items-center justify-center text-center border border-black/[0.02]">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-              <Plus className="w-10 h-10 text-slate-200" />
-            </div>
-            <p className="text-slate-400 font-bold tracking-tight">Vazio por enquanto...</p>
-          </div>
-        )}
+              <p className="text-slate-400 font-bold tracking-tight">Vazio por enquanto...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <EditModal 

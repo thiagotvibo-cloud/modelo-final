@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Link, useNavigate } from "react-router-dom";
 import { AddModal } from "../components/AddModal";
+import { motion } from "framer-motion";
 
 export function Resumo() {
   const { gastos, receitas, parcelas, metas, dividas } = useFinance();
@@ -25,9 +26,33 @@ export function Resumo() {
     return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
   };
 
+  const filterParcelaByDate = (p: { date: string; type: string; totalInstallments: number }) => {
+    const startDate = getSafeDate(p.date);
+    const startYear = startDate.getFullYear();
+    const startMonth = startDate.getMonth();
+    
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    
+    const monthDiff = (currentYear - startYear) * 12 + (currentMonth - startMonth);
+    
+    if (p.type === 'Assinatura' || p.type === 'Recorrente') {
+      return monthDiff >= 0;
+    } else {
+      return monthDiff >= 0 && monthDiff < p.totalInstallments;
+    }
+  };
+
   const currentReceitas = receitas.filter(r => filterByDate(r.date));
   const currentGastos = gastos.filter(g => filterByDate(g.date));
-  const currentParcelas = parcelas.filter(p => filterByDate(p.date));
+  const currentParcelas = parcelas.filter(p => filterParcelaByDate(p)).map(p => {
+    const startDate = getSafeDate(p.date);
+    const monthDiff = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + (currentDate.getMonth() - startDate.getMonth());
+    return {
+      ...p,
+      currentInstallment: p.type === 'Parcela' ? Math.min(p.totalInstallments, monthDiff + 1) : 1
+    };
+  });
 
   const totalReceitas = currentReceitas.reduce((a, b) => a + b.value, 0);
   const totalRecebido = currentReceitas.filter(r => r.status === 'Recebido').reduce((a, b) => a + b.value, 0);
@@ -48,15 +73,33 @@ export function Resumo() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const isOverdue = (dateStr: string) => {
+  const getMappedDate = (dateStr: string) => {
     const d = getSafeDate(dateStr);
-    d.setHours(0, 0, 0, 0);
-    return d < today;
+    // Mapeia para o mês que está sendo visualizado (currentDate)
+    const mappedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), d.getDate(), 12, 0, 0);
+    mappedDate.setHours(0, 0, 0, 0);
+    return mappedDate;
+  };
+
+  const isOverdue = (dateStr: string, isRecurringOrInstallment: boolean = false) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (isRecurringOrInstallment) {
+      // Para itens recorrentes, mapeia o dia de vencimento para o mês visualizado
+      const mappedDate = getMappedDate(dateStr);
+      // Avalia overdue baseado na data mapeada
+      return mappedDate < today;
+    } else {
+      const d = getSafeDate(dateStr);
+      d.setHours(0, 0, 0, 0);
+      return d < today;
+    }
   };
 
   const overdueAmount = 
-    currentGastos.filter(g => g.status === 'Pendente' && isOverdue(g.date)).reduce((a, b) => a + b.value, 0) +
-    currentParcelas.filter(p => p.status === 'Pendente' && isOverdue(p.date)).reduce((a, b) => a + b.value, 0);
+    currentGastos.filter(g => g.status === 'Pendente' && isOverdue(g.date, false)).reduce((a, b) => a + b.value, 0) +
+    currentParcelas.filter(p => p.status === 'Pendente' && isOverdue(p.date, true)).reduce((a, b) => a + b.value, 0);
 
   const upcomingAmount = pagamentosAberto - overdueAmount;
 
@@ -79,14 +122,20 @@ export function Resumo() {
         return rd.getMonth() === m && rd.getFullYear() === y;
       }).reduce((acc, curr) => acc + curr.value, 0);
 
+      const filterParcelaByDateForChart = (p: { date: string; type: string; totalInstallments: number }) => {
+        const pd = getSafeDate(p.date);
+        const startY = pd.getFullYear();
+        const startM = pd.getMonth();
+        const monthDiff = (y - startY) * 12 + (m - startM);
+        if (p.type === 'Assinatura' || p.type === 'Recorrente') return monthDiff >= 0;
+        return monthDiff >= 0 && monthDiff < p.totalInstallments;
+      };
+
       const g = gastos.filter(gas => {
         const gd = getSafeDate(gas.date);
         return gd.getMonth() === m && gd.getFullYear() === y;
       }).reduce((acc, curr) => acc + curr.value, 0) + 
-      parcelas.filter(par => {
-        const pd = getSafeDate(par.date);
-        return pd.getMonth() === m && pd.getFullYear() === y;
-      }).reduce((acc, curr) => acc + curr.value, 0);
+      parcelas.filter(filterParcelaByDateForChart).reduce((acc, curr) => acc + curr.value, 0);
 
       data.push({
         name: d.toLocaleDateString('pt-BR', { month: 'short' }),
@@ -97,9 +146,29 @@ export function Resumo() {
     return data;
   }, [receitas, gastos, parcelas, currentDate]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="w-full animate-in fade-in duration-500 pb-10">
-      <div className="bg-[#0b1b42] bg-gradient-to-b from-[#0f2863] via-[#0b1b42] to-[#060e24] pt-[88px] px-4 sm:px-6 pb-32 mb-[-100px] rounded-b-[48px] relative overflow-hidden shadow-2xl">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="w-full pb-10"
+    >
+      <motion.div variants={itemVariants} className="bg-[#0b1b42] bg-gradient-to-b from-[#0f2863] via-[#0b1b42] to-[#060e24] pt-[88px] px-4 sm:px-6 pb-32 mb-[-100px] rounded-b-[48px] relative overflow-hidden shadow-2xl">
         <div className="absolute inset-0 opacity-[0.25] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#3b82f6] rounded-full blur-[120px] opacity-[0.15] pointer-events-none"></div>
         
@@ -125,10 +194,10 @@ export function Resumo() {
         </div>
 
         <div className="flex flex-col items-center justify-center relative z-10 w-full mb-8 pt-4">
-          <div className="w-full max-w-sm">
+          <motion.div variants={itemVariants} className="w-full max-w-sm">
             {overdueAmount > 0 ? (
-              <Link to="/contas" className="block bg-red-500/10 backdrop-blur-md rounded-[32px] p-6 border border-red-500/20 hover:bg-red-500/20 transition-all text-center">
-                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+              <Link to="/contas" className="block bg-red-500/10 backdrop-blur-md rounded-[32px] p-6 border border-red-500/20 hover:bg-red-500/20 transition-all text-center group">
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30 group-hover:scale-110 transition-transform">
                   <AlertCircle className="w-6 h-6 text-red-300" />
                 </div>
                 <h3 className="text-red-100 font-bold text-[16px] tracking-tight mb-2">Contas em Atraso</h3>
@@ -136,13 +205,13 @@ export function Resumo() {
                   {overdueAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
                 <div className="flex items-center justify-center gap-2 text-red-200">
-                  <span className="text-[13px] font-medium opacity-80">Verifique suas pendências</span>
-                  <ChevronRightIcon className="w-4 h-4" />
+                  <span className="text-[13px] font-medium opacity-80 group-hover:opacity-100 transition-opacity">Verifique suas pendências</span>
+                  <ChevronRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
             ) : upcomingAmount > 0 ? (
-              <Link to="/contas" className="block bg-white/5 backdrop-blur-md rounded-[32px] p-6 border border-white/10 hover:bg-white/10 transition-all text-center">
-                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+              <Link to="/contas" className="block bg-white/5 backdrop-blur-md rounded-[32px] p-6 border border-white/10 hover:bg-white/10 transition-all text-center group">
+                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10 group-hover:scale-110 transition-transform">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-white/80 font-bold text-[16px] tracking-tight mb-2">Próximos Vencimentos</h3>
@@ -150,15 +219,20 @@ export function Resumo() {
                   {upcomingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
                 <div className="flex items-center justify-center gap-2 text-white/50">
-                  <span className="text-[13px] font-medium">Ver detalhes das contas</span>
-                  <ChevronRightIcon className="w-4 h-4" />
+                  <span className="text-[13px] font-medium group-hover:text-white/80 transition-colors">Ver detalhes das contas</span>
+                  <ChevronRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
             ) : (
               <div className="block bg-green-500/10 backdrop-blur-md rounded-[32px] p-6 border border-green-500/20 text-center">
-                <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+                <motion.div 
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10, delay: 0.2 }}
+                  className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30"
+                >
                   <Target className="w-6 h-6 text-green-300" />
-                </div>
+                </motion.div>
                 <h3 className="text-green-100 font-bold text-[18px] tracking-tight mb-2">Tudo em Dia!</h3>
                 <p className="text-[14px] text-green-200/80 mb-2 font-medium">Nenhuma conta pendente para este mês.</p>
                 <div className="flex items-center justify-center gap-2 text-green-200">
@@ -166,11 +240,11 @@ export function Resumo() {
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="px-4 sm:px-6 relative z-20">
+      <motion.div variants={itemVariants} className="px-4 sm:px-6 relative z-20">
         <div className="bg-white dark:bg-[#2C2C2E] rounded-[32px] p-2 shadow-xl shadow-black/5 dark:shadow-black/20 flex items-center justify-evenly mb-10 border border-black/[0.03] dark:border-white/5 transition-colors duration-300">
           <button 
             onClick={() => setIsAdding('Gasto')}
@@ -199,11 +273,11 @@ export function Resumo() {
             <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">Banco</span>
           </button>
         </div>
-      </div>
+      </motion.div>
 
       <div className="px-4 sm:px-6 mb-10">
-        <h3 className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mb-5 px-1">Atalhos rápidos</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <motion.h3 variants={itemVariants} className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mb-5 px-1">Atalhos rápidos</motion.h3>
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
           <Link to="/metas" className="bg-white dark:bg-[#2C2C2E] p-5 rounded-[26px] border border-black/[0.03] dark:border-white/5 shadow-sm flex items-center gap-4 iphone-button hover:bg-slate-50 dark:hover:bg-white/5 transition-colors duration-300">
             <div className="w-11 h-11 bg-slate-900 border border-slate-700 dark:border-transparent rounded-2xl flex items-center justify-center text-white shadow-lg shadow-black/10">
               <Target className="w-5 h-5" />
@@ -228,10 +302,10 @@ export function Resumo() {
             </div>
             <span className="font-bold text-slate-800 dark:text-white text-[15px] tracking-tight">Investir</span>
           </Link>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="px-4 sm:px-6">
+      <motion.div variants={itemVariants} className="px-4 sm:px-6">
         <div className="bg-white dark:bg-[#2C2C2E] p-8 rounded-[32px] border border-black/[0.03] dark:border-white/5 shadow-sm mb-8 transition-colors duration-300">
           <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-8">Atividade Semestral</h3>
           <div className="w-full h-64 -ml-4">
@@ -262,13 +336,13 @@ export function Resumo() {
           </ResponsiveContainer>
         </div>
       </div>
-      </div>
+      </motion.div>
 
       <AddModal 
         isOpen={isAdding !== null}
         onClose={() => setIsAdding(null)}
         defaultType={isAdding || 'Receita'}
       />
-    </div>
+    </motion.div>
   );
 }

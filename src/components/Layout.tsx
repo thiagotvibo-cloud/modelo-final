@@ -1,6 +1,8 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { useLocation, Link, useOutlet } from "react-router-dom";
 import { LogOut, LayoutDashboard, Receipt, CreditCard, ArrowDownUp, Wallet, Target, Calendar, AlertCircle, TrendingUp, BarChart3, User } from "lucide-react";
 import { Notifications } from "./Notifications";
+import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
 
 const navItems = [
   { name: "Resumo", href: "/resumo", icon: LayoutDashboard },
@@ -12,6 +14,7 @@ const navItems = [
 
 export function Layout() {
   const location = useLocation();
+  const outlet = useOutlet();
   const isResumo = location.pathname === "/resumo" || location.pathname === "/";
 
   return (
@@ -37,8 +40,19 @@ export function Layout() {
 
         <Notifications />
 
-        <main className={`flex-1 w-full bg-[#F2F2F7] dark:bg-[#1F1F1F] transition-colors duration-300 relative pb-28 ${isResumo ? 'p-0 sm:p-0' : 'p-4 sm:p-6'} overflow-y-auto hide-scrollbar`}>
-          <Outlet />
+        <main className={`flex-1 w-full bg-[#F2F2F7] dark:bg-[#1F1F1F] transition-colors duration-300 relative pb-28 ${isResumo ? 'p-0 sm:p-0' : 'p-4 sm:p-6'} overflow-x-hidden overflow-y-auto hide-scrollbar`}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 15, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.99 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="h-full w-full"
+            >
+              {outlet && React.cloneElement(outlet as React.ReactElement, { key: location.pathname })}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         <nav className="bg-white/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-black/[0.05] dark:border-white/[0.05] fixed bottom-0 w-full max-w-2xl z-50 pb-[env(safe-area-inset-bottom)] transition-colors duration-300">
