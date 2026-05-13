@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; };
 export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; };
-export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; };
+export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; };
 
 export type Orcamento = { id: string; category: string; limit: number; spent: number; };
 export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; };
@@ -50,6 +50,7 @@ export type FinanceContextType = {
   deleteGasto: (id: string) => void;
   deleteReceita: (id: string) => void;
   deleteParcela: (id: string) => void;
+  deleteParcelaSeries: (seriesId: string) => void;
   deleteOrcamento: (id: string) => void;
   deleteMeta: (id: string) => void;
   deleteDivida: (id: string) => void;
@@ -221,6 +222,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncDelete('parcelas', id);
   };
 
+  const deleteParcelaSeries = (seriesId: string) => {
+    const toDelete = parcelas.filter(p => p.seriesId === seriesId);
+    setParcelas(prev => prev.filter(p => p.seriesId !== seriesId));
+    if (supabase) {
+      toDelete.forEach(p => syncDelete('parcelas', p.id));
+    }
+  };
+
   const addOrcamento = (data: Omit<Orcamento, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data } as Orcamento;
@@ -314,7 +323,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas,
       notificationSettings,
       addGasto, addReceita, addParcela, addMultipleParcelas, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
-      updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela,
+      updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela, deleteParcelaSeries,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento,
       updateConta, deleteConta, updateNotificationSettings
     }}>

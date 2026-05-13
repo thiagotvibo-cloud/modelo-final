@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import React, { useState } from "react";
+import { parseLocaleNumber } from "../lib/utils";
 
 type EditModalProps = {
   isOpen: boolean;
@@ -8,14 +9,20 @@ type EditModalProps = {
   initialData: any;
   onSave: (data: any) => void;
   onDelete?: () => void;
+  onDeleteSeries?: () => void;
 };
 
-export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelete }: EditModalProps) {
+export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelete, onDeleteSeries }: EditModalProps) {
   const [formData, setFormData] = useState(initialData);
 
   React.useEffect(() => {
     if (isOpen && initialData) {
-      setFormData(initialData);
+      const data = { ...initialData };
+      // If it's a Parcela, show the total value for editing
+      if (data.type === 'Parcela') {
+        data.value = Number((data.value * (data.totalInstallments || 1)).toFixed(2));
+      }
+      setFormData(data);
     }
   }, [isOpen, initialData]);
 
@@ -23,11 +30,27 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev: any) => ({ ...prev, [name]: name === 'value' ? Number(value) : value }));
+    let finalValue: any = value;
+    
+    // List of numeric fields to be parsed correctly
+    const numericFields = ['value', 'target', 'limit', 'totalAmount', 'paidAmount', 'balance', 'spent', 'saved', 'totalInstallments', 'yield', 'interestRate', 'expectedBalance'];
+    
+    if (numericFields.includes(name)) {
+      finalValue = typeof value === 'string' ? parseLocaleNumber(value) : value;
+      if (isNaN(finalValue)) finalValue = 0;
+    }
+    
+    setFormData((prev: any) => ({ ...prev, [name]: finalValue }));
   };
 
   const handleSave = () => {
-    onSave(formData);
+    const data = { ...formData };
+    // If it's a Parcela, divide the total value back to installment value
+    if (data.type === 'Parcela') {
+      const count = Number(data.totalInstallments) || 1;
+      data.value = Number((data.value / count).toFixed(2));
+    }
+    onSave(data);
     onClose();
   };
 
@@ -35,6 +58,15 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
     if (onDelete) {
       if (window.confirm("Você tem certeza que deseja excluir?")) {
         onDelete();
+        onClose();
+      }
+    }
+  };
+
+  const handleDeleteSeries = () => {
+    if (onDeleteSeries) {
+      if (window.confirm("Você tem certeza que deseja excluir TODA esta compra e todas as suas parcelas?")) {
+        onDeleteSeries();
         onClose();
       }
     }
@@ -55,18 +87,21 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
         <div className="space-y-6">
           <div className="max-h-[60vh] overflow-y-auto space-y-5 pr-1 hide-scrollbar">
               {Object.keys(initialData)
-                .filter(key => !['id', 'type', 'currentInstallment', 'account'].includes(key))
+                .filter(key => !['id', 'type', 'currentInstallment', 'account', 'seriesId'].includes(key))
                 .map((key) => {
                   const val = formData[key];
-                  const isNumber = typeof val === 'number';
                   const isDate = key === 'date' || key === 'deadline';
-                  const inputType = isNumber ? 'number' : isDate ? 'date' : 'text';
+                  const numericFields = ['value', 'target', 'limit', 'totalAmount', 'paidAmount', 'balance', 'spent', 'saved', 'totalInstallments'];
+                  const isNumeric = numericFields.includes(key);
+                  
+                  const inputType = isDate ? 'date' : 'text';
+                  const inputMode = isNumeric ? 'decimal' : undefined;
 
                   const labels: Record<string, string> = {
                     description: 'Descrição',
                     title: 'Título',
                     name: 'Nome',
-                    value: 'Valor',
+                    value: formData.type === 'Parcela' ? 'Valor Total da Compra' : 'Valor',
                     date: 'Data',
                     method: 'Forma / Tipo',
                     status: 'Status',
@@ -110,31 +145,48 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                       <label className="block text-[13px] font-semibold text-slate-500 mb-1.5">{labels[key] || key}</label>
                       <input 
                         type={inputType}
+                        inputMode={inputMode as any}
                         name={key}
                         value={isDate && val ? (!isNaN(Date.parse(String(val))) ? new Date(String(val)).toISOString().split('T')[0] : '') : (val !== undefined && val !== null ? val : '')} 
                         onChange={handleChange}
                         className="w-full border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-800 dark:text-white focus:outline-none focus:border-black bg-slate-50 dark:bg-[#2C2C2E]"
                       />
+                      {key === 'value' && formData.type === 'Parcela' && (
+                        <div className="px-1 py-1 text-[13px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl mt-2 flex justify-between items-center px-4">
+                          <span>Plano de Pagamento:</span>
+                          <span>{(Number(formData.totalInstallments) || 1)}x de {(Number(formData.value) / (Number(formData.totalInstallments) || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
           </div>
 
-          <div className="flex gap-2 mt-4">
-            {onDelete && (
+          <div className="flex flex-col gap-2 mt-4">
+            <div className="flex gap-2">
+              {onDelete && (
+                <button 
+                  onClick={handleDelete}
+                  className="w-1/2 bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-xl transition-colors text-sm"
+                >
+                  Excluir Parcela
+                </button>
+              )}
               <button 
-                onClick={handleDelete}
-                className="w-1/3 bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-xl transition-colors"
+                onClick={handleSave}
+                className={`${onDelete ? 'w-1/2' : 'w-full'} mt-0 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-black font-bold py-3.5 rounded-xl transition-colors`}
               >
-                Excluir
+                Salvar
+              </button>
+            </div>
+            {onDeleteSeries && (
+              <button 
+                onClick={handleDeleteSeries}
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-red-500/20"
+              >
+                Excluir toda a compra
               </button>
             )}
-            <button 
-              onClick={handleSave}
-              className={`${onDelete ? 'w-2/3' : 'w-full'} mt-0 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-black font-bold py-3.5 rounded-xl transition-colors`}
-            >
-              Salvar
-            </button>
           </div>
         </div>
       </div>

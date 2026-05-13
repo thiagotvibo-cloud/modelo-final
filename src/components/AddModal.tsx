@@ -1,4 +1,4 @@
-import { getLocalYYYYMMDD } from "../lib/utils";
+import { getLocalYYYYMMDD, parseLocaleNumber } from "../lib/utils";
 import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useFinance } from "../contexts/FinanceContext";
@@ -47,9 +47,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
   if (!isOpen) return null;
 
   const handleSave = () => {
-    const numValue = Number(value.replace(/,/g, '.'));
-    const numTarget = Number(target.replace(/,/g, '.'));
-    const numLimit = Number(limit.replace(/,/g, '.'));
+    const numValue = parseLocaleNumber(value);
+    const numTarget = parseLocaleNumber(target);
+    const numLimit = parseLocaleNumber(limit);
     const parsedDate = date // 'YYYY-MM-DD'
       ? `${date}T12:00:00Z` // Store as noon UTC to avoid missing days
       : `${getLocalYYYYMMDD()}T12:00:00Z`;
@@ -78,14 +78,14 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       
       const items = [];
       const baseDate = new Date(parsedDate);
+      const seriesId = crypto.randomUUID();
       
       if (parcelaType === 'Parcela') {
         const count = Number(totalInstallments) || 1;
         const installmentValue = numValue / count;
         
         for (let i = 0; i < count; i++) {
-          const installmentDate = new Date(baseDate);
-          installmentDate.setMonth(baseDate.getMonth() + i);
+          const installmentDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate(), 12, 0, 0);
           items.push({
             description: `${description} (${i + 1}/${count})`,
             value: Number(installmentValue.toFixed(2)),
@@ -94,7 +94,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
             currentInstallment: i + 1,
             totalInstallments: count,
             status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
-            type: parcelaType
+            type: parcelaType,
+            seriesId
           });
         }
       } else {
@@ -110,7 +111,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
             currentInstallment: 1,
             totalInstallments: 1,
             status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
-            type: parcelaType
+            type: parcelaType,
+            seriesId
           });
         }
       }
@@ -244,19 +246,25 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
           ) : (
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">
-                {['Investimento', 'Conta'].includes(type) ? 'Valor Atual' : 'Quanto foi?'}
+                {['Investimento', 'Conta'].includes(type) ? 'Valor Atual' : type === 'Parcela' ? 'Valor Total da Compra' : 'Quanto foi?'}
               </label>
               <div className="relative">
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">R$</span>
                 <input 
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={value} 
                   onChange={(e) => setValue(e.target.value)}
                   placeholder="0,00"
                   className="w-full border-2 border-slate-50 rounded-[28px] pl-14 pr-6 py-7 text-black text-4xl font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all placeholder:text-slate-100"
                 />
               </div>
+              {type === 'Parcela' && parcelaType === 'Parcela' && value && (
+                <div className="px-1 py-1 text-[13px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl mt-2 flex justify-between items-center px-4">
+                  <span>Plano de Pagamento:</span>
+                  <span>{(Number(totalInstallments) || 1)}x de {(parseLocaleNumber(value) / (Number(totalInstallments) || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                </div>
+              )}
             </div>
           )}
 
