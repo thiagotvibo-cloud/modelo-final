@@ -44,10 +44,10 @@ export function Metas() {
               return (
                 <motion.div 
                   layout
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.25, delay: index * 0.05 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1 }}
                   key={meta.id} 
                   onClick={() => handleEdit(meta)}
                   className="iphone-card p-7 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235]"
@@ -88,9 +88,9 @@ export function Metas() {
             })
           ) : (
             <motion.div 
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               exit={{ opacity: 0, scale: 0.95 }}
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
                className="bg-white dark:bg-[#2C2C2E] rounded-[32px] p-20 text-center border border-black/[0.02] dark:border-white/5"
             >
               <Target className="w-16 h-16 text-slate-200 dark:text-slate-600 mx-auto mb-6" />

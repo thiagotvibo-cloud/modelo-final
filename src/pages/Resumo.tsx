@@ -210,9 +210,9 @@ export function Resumo() {
             ) : (
               <div className="block bg-green-500/10 backdrop-blur-md rounded-[32px] p-6 border border-green-500/20 text-center">
                 <motion.div 
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10, delay: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.1 }}
                   className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30"
                 >
                   <Target className="w-6 h-6 text-green-300" />

@@ -2,15 +2,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
-export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; observations?: string; };
-export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; };
-export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; observations?: string; };
+export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; observations?: string; user_id?: string; };
+export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; user_id?: string; };
+export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; observations?: string; user_id?: string; };
 
-export type Orcamento = { id: string; category: string; limit: number; spent: number; };
-export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; };
-export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; method?: string; };
-export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; };
-export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; color?: string; };
+export type Orcamento = { id: string; category: string; limit: number; spent: number; user_id?: string; };
+export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; user_id?: string; };
+export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; method?: string; user_id?: string; };
+export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; user_id?: string; };
+export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; color?: string; user_id?: string; };
 
 export type FinanceContextType = {
   gastos: Gasto[];
@@ -90,7 +90,7 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
     let isSubscribed = true;
 
     const fetchFromSupabase = async () => {
-      const { data, error } = await supabase.from(tableName).select('*');
+      const { data, error } = await supabase.from(tableName).select('*').eq('user_id', user.id);
       if (error) {
         console.error(`Error fetching ${tableName} from Supabase:`, error);
       } else if (data && isSubscribed) {
@@ -101,10 +101,15 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
 
     // Subscribe to real-time changes
     const channel = supabase
-      .channel(`rt-${tableName}`)
+      .channel(`rt-${tableName}-${user.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: tableName },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: tableName, 
+          filter: `user_id=eq.${user.id}` 
+        },
         (payload) => {
           if (!isSubscribed) return;
 
