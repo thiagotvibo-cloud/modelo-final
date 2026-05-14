@@ -74,10 +74,12 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
     if (tableName === 'contas') {
       return data.map(item => ({
         ...item,
-        name: item.nome || item.name,
-        type: item.tipo || item.type,
-        balance: Number(item.saldo) || Number(item.balance) || 0,
-        institution: item.instituicao || item.institution || 'Geral',
+        name: item.name || 'Nova Conta',
+        type: item.type || 'Conta',
+        balance: Number(item.balance) || 0,
+        expectedBalance: Number(item.expectedBalance) || 0,
+        color: (item.type === 'Etiqueta') && String(item.institution || '').startsWith('#') ? item.institution : '#333333',
+        institution: (item.type === 'Etiqueta') && String(item.institution || '').startsWith('#') ? 'Geral' : (item.institution || 'Geral'),
       }));
     }
     return data;
@@ -232,21 +234,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         };
         break;
       case 'contas':
-        // Mapeamento Estrito para Supabase (conforme Constraint NOT NULL)
         clean = {
           ...clean,
-          nome: payload.name || payload.nome || 'Nova Conta',
-          tipo: payload.type || payload.tipo || 'Etiqueta',
-          saldo: Number(payload.balance) || Number(payload.saldo) || 0,
+          name: payload.name || 'Nova Conta',
+          type: payload.type || 'Conta',
+          balance: Number(payload.balance) || 0,
           expectedBalance: Number(payload.expectedBalance) || 0,
-          instituicao: payload.institution || payload.instituicao || 'Geral',
-          color: payload.color || '#333333',
+          // Encode color in institution field if it's a tag
+          institution: payload.type === 'Etiqueta' ? (payload.color || '#333333') : (payload.institution || 'Geral'),
         };
-        // Remover chaves em inglês que não existem na tabela
-        delete clean.name;
-        delete clean.type;
-        delete clean.balance;
-        delete clean.institution;
+        // Remove virtual fields
+        delete clean.color;
         break;
       case 'orcamentos':
         clean = {
