@@ -62,10 +62,10 @@ export function Contas() {
         {!viewingLabel ? (
           <motion.div
             key="list"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
           >
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -88,10 +88,10 @@ export function Contas() {
                     return (
                       <motion.div 
                         layout
-                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.15, delay: index * 0.02 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.1 }}
                         key={conta.id} 
                         className="iphone-card p-6 shadow-sm cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] border-l-[6px] select-none"
                         style={{ borderLeftColor: conta.color || '#000' }}
@@ -140,10 +140,10 @@ export function Contas() {
         ) : (
           <motion.div
             key="details"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
             className="pb-10"
           >
             <div className="flex items-center gap-4 mb-8">

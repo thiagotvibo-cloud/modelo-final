@@ -198,10 +198,10 @@ export function Parcelas() {
       <AnimatePresence mode="wait">
         {viewMode === 'monthly' && (
           <motion.div 
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
             className="flex items-center justify-between mb-6 bg-white dark:bg-[#2C2C2E] border border-black/[0.03] dark:border-white/5 rounded-[24px] p-2 shadow-sm"
           >
             <button onClick={() => changeMonth(-1)} className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
@@ -235,9 +235,9 @@ export function Parcelas() {
             bankSummary.map((bank, index) => (
               <motion.div
                 key={bank.name}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.15, delay: index * 0.03 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
                 className="iphone-card p-6 flex justify-between items-center border-l-4"
                 style={{ borderLeftColor: bank.color || 'transparent' }}
               >
@@ -261,10 +261,10 @@ export function Parcelas() {
             return (
               <motion.div 
                  layout
-                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                 exit={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
-                 transition={{ duration: 0.15, delay: index * 0.02 }}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 transition={{ duration: 0.1 }}
                  key={parcela.id}
                  onClick={() => handleEdit(parcela)}
                  className={`iphone-card p-6 cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${isPago && parcela.currentInstallment === parcela.totalInstallments && !isRecorrente && viewMode === 'monthly' ? 'opacity-40 grayscale' : ''} ${parcela.isCompleted && viewMode === 'series' ? 'opacity-40 grayscale' : ''}`}

@@ -95,16 +95,15 @@ export function Organizacao() {
       <AnimatePresence>
         {expandedGroup === period && (
           <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="overflow-hidden space-y-3 px-1"
           >
             {items.length > 0 ? items.map((item, idx) => (
               <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 key={item.id}
                 className="bg-white dark:bg-[#1C1C1E] rounded-[24px] p-5 border border-black/[0.02] dark:border-white/[0.05] shadow-sm"
               >

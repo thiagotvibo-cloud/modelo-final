@@ -101,7 +101,7 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
 
     // Subscribe to real-time changes
     const channel = supabase
-      .channel(`rt-${tableName}-${user.id}`)
+      .channel(`rt-${tableName}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: tableName },
@@ -162,8 +162,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   };
 
   const syncDelete = async (table: string, id: string) => {
-    if (supabase) {
-      const { error } = await supabase.from(table).delete().eq('id', id);
+    if (supabase && user) {
+      const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', user.id);
       if (error) console.error(`Error syncing delete from ${table}:`, error);
     }
   };
@@ -191,14 +191,15 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     handleBudgetUpdate((data as any).category, data.value);
   };
   const updateGasto = (id: string, data: Partial<Gasto>) => {
-    const oldItem = gastos.find(i => i.id === id);
-    setGastos(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = gastos.find(i => i.id === id);
-    if (item) syncUpsert('gastos', id, { ...item, ...data });
-
-    // Simplistic approach: if value changes, adjust budget
-    if (oldItem && data.value && data.value !== oldItem.value) {
-      handleBudgetUpdate((oldItem as any).category, data.value - oldItem.value);
+    if (item) {
+      const newItem = { ...item, ...data };
+      setGastos(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('gastos', id, newItem);
+      
+      if (data.value && data.value !== item.value) {
+        handleBudgetUpdate((item as any).category, data.value - item.value);
+      }
     }
   };
   const deleteGasto = (id: string) => {
@@ -217,9 +218,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('receitas', id, newItem);
   };
   const updateReceita = (id: string, data: Partial<Receita>) => {
-    setReceitas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = receitas.find(i => i.id === id);
-    if (item) syncUpsert('receitas', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setReceitas(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('receitas', id, newItem);
+    }
   };
   const deleteReceita = (id: string) => {
     setReceitas(prev => prev.filter(i => i.id !== id));
@@ -243,9 +247,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   };
 
   const updateParcela = (id: string, data: Partial<Parcela>) => {
-    setParcelas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = parcelas.find(i => i.id === id);
-    if (item) syncUpsert('parcelas', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setParcelas(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('parcelas', id, newItem);
+    }
   };
   const deleteParcela = (id: string) => {
     setParcelas(prev => prev.filter(i => i.id !== id));
@@ -267,9 +274,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('orcamentos', id, newItem);
   };
   const updateOrcamento = (id: string, data: Partial<Orcamento>) => {
-    setOrcamentos(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = orcamentos.find(i => i.id === id);
-    if (item) syncUpsert('orcamentos', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setOrcamentos(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('orcamentos', id, newItem);
+    }
   };
   const deleteOrcamento = (id: string) => {
     setOrcamentos(prev => prev.filter(i => i.id !== id));
@@ -283,9 +293,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('metas', id, newItem);
   };
   const updateMeta = (id: string, data: Partial<Meta>) => {
-    setMetas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = metas.find(i => i.id === id);
-    if (item) syncUpsert('metas', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setMetas(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('metas', id, newItem);
+    }
   };
   const deleteMeta = (id: string) => {
     setMetas(prev => prev.filter(i => i.id !== id));
@@ -299,9 +312,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('dividas', id, newItem);
   };
   const updateDivida = (id: string, data: Partial<Divida>) => {
-    setDividas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = dividas.find(i => i.id === id);
-    if (item) syncUpsert('dividas', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setDividas(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('dividas', id, newItem);
+    }
   };
   const deleteDivida = (id: string) => {
     setDividas(prev => prev.filter(i => i.id !== id));
@@ -315,9 +331,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('investimentos', id, newItem);
   };
   const updateInvestimento = (id: string, data: Partial<Investimento>) => {
-    setInvestimentos(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = investimentos.find(i => i.id === id);
-    if (item) syncUpsert('investimentos', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setInvestimentos(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('investimentos', id, newItem);
+    }
   };
   const deleteInvestimento = (id: string) => {
     setInvestimentos(prev => prev.filter(i => i.id !== id));
@@ -331,9 +350,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('contas', id, newItem);
   };
   const updateConta = (id: string, data: Partial<Conta>) => {
-    setContas(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
     const item = contas.find(i => i.id === id);
-    if (item) syncUpsert('contas', id, { ...item, ...data });
+    if (item) {
+      const newItem = { ...item, ...data };
+      setContas(prev => prev.map(i => i.id === id ? newItem : i));
+      syncUpsert('contas', id, newItem);
+    }
   };
   const deleteConta = (id: string) => {
     setContas(prev => prev.filter(i => i.id !== id));
