@@ -18,24 +18,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (
+        event.reason && 
+        event.reason.message && 
+        event.reason.message.includes('Refresh Token')
+      ) {
+        event.preventDefault();
+        supabase?.auth.signOut().finally(() => {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+        });
+      }
+    };
+    
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
     if (!supabase) {
       setLoading(false);
-      return;
+      return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        if (error.message.includes("Refresh Token")) {
+          // Force sign out to clear bad session
+          supabase?.auth.signOut();
+        } else {
+          console.error("Supabase auth error:", error.message);
+        }
+      }
+      setSession(session);
+      setUser(session?.user || null);
+      setLoading(false);
+    }).catch((err) => {
+      if (err.message && err.message.includes("Refresh Token")) {
+        supabase?.auth.signOut();
+      } else {
+        console.error(err);
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      }
       setSession(session);
       setUser(session?.user || null);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user || null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   return (
