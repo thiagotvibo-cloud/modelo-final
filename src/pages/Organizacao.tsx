@@ -50,6 +50,7 @@ export function Organizacao() {
     const monthsDiff = (year - rowYear) * 12 + (month - rowMonth);
 
     if (monthsDiff === 0) {
+      // It's an item already in the DB for the current month
       projectedParcelas.push({
         ...p,
         displayInstallment: p.currentInstallment,
@@ -57,16 +58,22 @@ export function Organizacao() {
         isExact: true
       });
     } else if (monthsDiff > 0) {
+      // It's an item from a past month. Should we project it?
       let shouldProject = false;
       let newInstallment = p.currentInstallment;
       
-      if (p.type === 'Parcela') {
-        newInstallment = p.currentInstallment + monthsDiff;
-        if (newInstallment <= p.totalInstallments) {
-          shouldProject = true;
-        }
-      } else if (p.type === 'Assinatura' || p.type === 'Recorrente') {
+      // ONLY project if it's NOT a fixed installment (Parcela) 
+      // OR if the user manually added only the first installment of a series.
+      // Since AddModal adds ALL installments by default, we only project Assinaturas/Recorrentes
+      // to avoid duplicates for items already in the DB.
+      if (p.type === 'Assinatura' || p.type === 'Recorrente') {
         shouldProject = true;
+      } else if (p.type === 'Parcela') {
+        // Only project if this specific installment sequence is not expected to be in the DB
+        // But to be safe and avoid the "double installment" bug, we skip projection for Parcela
+        // if they are already accounted for by the exact match.
+        // Actually, let's keep it simple: project only if it's a recurring type.
+        shouldProject = false; 
       }
 
       if (shouldProject) {
@@ -85,6 +92,8 @@ export function Organizacao() {
 
   const uniqueParcelas = new Map();
   projectedParcelas.forEach(p => {
+    // If it's a Parcela already in DB, p.id is unique.
+    // If it's projected, p.id is the ID of the source item.
     const key = p.seriesId ? `${p.seriesId}-${p.displayInstallment}` : `${p.id}-${p.displayInstallment}`;
     if (!uniqueParcelas.has(key) || p.isExact) {
       uniqueParcelas.set(key, p);
@@ -100,7 +109,8 @@ export function Organizacao() {
     bank: p.account || p.bank || p.method,
     observations: p.observations || '',
     parcelaInfo: p.type === 'Parcela' ? `${p.displayInstallment}/${p.totalInstallments}` : p.type,
-    type: 'Parcela'
+    type: 'Parcela',
+    seriesId: p.seriesId
   }));
 
   const currentMonthItems = [...filteredGastos, ...filteredParcelas]
@@ -120,89 +130,172 @@ export function Organizacao() {
   const totalFinal = finalMes.reduce((acc, item) => acc + item.value, 0);
 
   const [expandedGroup, setExpandedGroup] = useState<'inicio' | 'final' | null>('inicio');
+  const [expandedPurchases, setExpandedPurchases] = useState<string[]>([]);
 
-  const renderGroup = (title: string, items: typeof currentMonthItems, total: number, period: 'inicio' | 'final', subtitle: string) => (
-    <div className="mb-6">
-      <button 
-        onClick={() => setExpandedGroup(expandedGroup === period ? null : period)}
-        className={`w-full text-left iphone-card p-6 mb-3 transition-all duration-300 ${expandedGroup === period ? 'ring-2 ring-black dark:ring-white border-transparent' : 'border-black/[0.03] dark:border-white/5'}`}
-      >
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>
-            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">{subtitle}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[22px] font-black text-slate-900 dark:text-white tracking-tighter">
-              {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{items.length} itens</p>
-          </div>
-        </div>
-      </button>
+  const togglePurchase = (key: string) => {
+    setExpandedPurchases(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
-      <AnimatePresence>
-        {expandedGroup === period && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="overflow-hidden space-y-3 px-1"
-          >
-            {items.length > 0 ? items.map((item, idx) => (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                key={item.id}
-                className="bg-white dark:bg-[#1C1C1E] rounded-[24px] p-5 border border-black/[0.02] dark:border-white/[0.05] shadow-sm"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 pr-4">
-                    <div className="flex items-center gap-2 mb-1.5 font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">
-                      {item.description}
-                      {item.parcelaInfo && (
-                        <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">
-                          {item.parcelaInfo}
-                        </span>
-                      )}
+  const getBaseDescription = (desc: string) => {
+    // Remove tags like (1/10) or (1 / 10)
+    return desc.replace(/\s*\(\d+\s*[\/\-]\s*\d+\)$/, '').trim();
+  };
+
+  const renderGroup = (title: string, items: typeof currentMonthItems, total: number, period: 'inicio' | 'final', subtitle: string) => {
+    // Group items by seriesId or normalized description
+    const groups: { key: string, items: any[], type: string, description: string }[] = [];
+    const processedKeys = new Set();
+
+    items.forEach(item => {
+      const baseDesc = getBaseDescription(item.description);
+      // Group by seriesId if it exists, otherwise by normalized description
+      const key = item.seriesId || baseDesc;
+      
+      const existingGroupIndex = groups.findIndex(g => g.key === key);
+      if (existingGroupIndex > -1) {
+        groups[existingGroupIndex].items.push(item);
+      } else {
+        groups.push({ key, items: [item], type: item.type, description: baseDesc });
+      }
+    });
+
+    return (
+      <div className="mb-6">
+        <button 
+          onClick={() => setExpandedGroup(expandedGroup === period ? null : period)}
+          className={`w-full text-left iphone-card p-6 mb-3 transition-all duration-300 ${expandedGroup === period ? 'ring-2 ring-black dark:ring-white border-transparent' : 'border-black/[0.03] dark:border-white/5'}`}
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>
+              <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">{subtitle}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[22px] font-black text-slate-900 dark:text-white tracking-tighter">
+                {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{items.length} itens</p>
+            </div>
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {expandedGroup === period && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="overflow-hidden space-y-3 px-1"
+            >
+              {groups.length > 0 ? groups.map((group) => {
+                const isMulti = group.items.length > 1;
+                const isExpanded = expandedPurchases.includes(group.key);
+                const firstItem = group.items[0];
+                const totalValue = group.items.reduce((acc, i) => acc + i.value, 0);
+                const allPaid = group.items.every(i => i.status === 'Pago' || i.status === 'Recebido');
+                const somePaid = group.items.some(i => i.status === 'Pago' || i.status === 'Recebido');
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    key={group.key}
+                    className="bg-white dark:bg-[#1C1C1E] rounded-[24px] border border-black/[0.02] dark:border-white/[0.05] shadow-sm overflow-hidden"
+                  >
+                    <div 
+                      className={`p-5 ${isMulti ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02]' : ''}`}
+                      onClick={() => isMulti && togglePurchase(group.key)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 pr-4">
+                          <div className="flex items-center gap-2 mb-1.5 font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">
+                            {group.description}
+                            {isMulti && (
+                              <span className="text-[10px] bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-lg uppercase tracking-widest font-black">
+                                {group.items.length} itens
+                              </span>
+                            )}
+                            {!isMulti && firstItem.parcelaInfo && (
+                              <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">
+                                {firstItem.parcelaInfo}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md uppercase tracking-wider">
+                              {isMulti ? 'Vários vencimentos' : `Venc: ${new Date(firstItem.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`}
+                            </span>
+                            {firstItem.bank && (
+                              <span 
+                                className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
+                                style={{ backgroundColor: contas.find(c => c.name === firstItem.bank)?.color || '#333333' }}
+                              >
+                                {firstItem.bank}
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${allPaid ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400' : somePaid ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' : 'bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400'}`}>
+                              {isMulti ? (allPaid ? 'Geral Pago' : 'Pendências') : firstItem.status}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight shrink-0 mt-0.5 text-right">
+                          {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          {isMulti && (
+                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                              {isExpanded ? 'Recolher' : 'Ver Detalhes'}
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md uppercase tracking-wider">
-                        Venc: {new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                      </span>
-                      {item.bank && (
-                        <span 
-                          className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
-                          style={{ backgroundColor: contas.find(c => c.name === item.bank)?.color || '#333333' }}
+
+                    <AnimatePresence>
+                      {isMulti && isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="border-t border-black/[0.03] dark:border-white/[0.03] bg-slate-50/50 dark:bg-white/[0.01]"
                         >
-                          {item.bank}
-                        </span>
+                          <div className="p-4 space-y-3">
+                            {group.items.map((subItem) => (
+                              <div key={subItem.id} className="flex justify-between items-center bg-white dark:bg-[#1C1C1E] p-3 rounded-xl border border-black/[0.02] dark:border-white/[0.05]">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-2 h-2 rounded-full ${subItem.status === 'Pago' || subItem.status === 'Recebido' ? 'bg-green-500' : 'bg-orange-500'}`} />
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+                                      {subItem.parcelaInfo || subItem.description}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                      Venc: {new Date(subItem.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <p className="text-sm font-black text-slate-900 dark:text-white">
+                                  {subItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
                       )}
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${item.status === 'Pago' || item.status === 'Recebido' ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400'}`}>
-                        {item.status}
-                      </span>
-                    </div>
-
-                    {item.observations && (
-                      <p className="mt-2.5 text-[11px] text-slate-400 italic font-medium leading-tight">“{item.observations}”</p>
-                    )}
-                  </div>
-                  <p className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight shrink-0 mt-0.5">
-                    {item.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </p>
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              }) : (
+                <div className="p-10 text-center text-slate-400 text-sm font-medium">
+                  Nenhum compromisso neste período.
                 </div>
-              </motion.div>
-            )) : (
-              <div className="p-10 text-center text-slate-400 text-sm font-medium">
-                Nenhum compromisso neste período.
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
 
   return (
     <div className="w-full">

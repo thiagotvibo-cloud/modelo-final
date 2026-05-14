@@ -96,10 +96,6 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
   // Sync with Supabase on mount and Subscribe to changes
   useEffect(() => {
     if (!supabase || !user) {
-      // If user logs out, we might want to clear local state to default
-      if (!user && supabase) {
-        setState(defaultValue);
-      }
       return;
     }
     
@@ -168,7 +164,7 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [lastSync, setLastSync] = useState<string>('');
   const updateLastSync = () => setLastSync(new Date().toLocaleString());
 
@@ -302,7 +298,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
     
     const payload = sanitizePayload(table, { id, ...data, user_id: user.id });
-    console.log("DEBUG single upsert", table, payload);
 
     const { error } = await supabase.from(table).upsert(payload);
     if (error) {
@@ -417,7 +412,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user.id })) as Parcela[];
     if (supabase) {
       const sanitizedItems = newItemsWithIds.map(item => sanitizePayload('parcelas', item));
-      console.log("DEBUG sanitized parcelas:", sanitizedItems);
       const { error } = await supabase.from('parcelas').upsert(sanitizedItems);
 
       if (error) {

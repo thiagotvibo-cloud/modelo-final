@@ -95,7 +95,13 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         const installmentValue = numValue / count;
         
         for (let i = 0; i < count; i++) {
-          const installmentDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate(), 12, 0, 0);
+          // Use UTC to keep dates consistent across months
+          const installmentDate = new Date(Date.UTC(
+            baseDate.getUTCFullYear(), 
+            baseDate.getUTCMonth() + i, 
+            baseDate.getUTCDate(), 
+            12, 0, 0
+          ));
           items.push({
             description: `${description} (${i + 1}/${count})`,
             value: Number(installmentValue.toFixed(2)),
@@ -113,8 +119,12 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       } else {
         // For Assinatura/Recorrente, generate 12 months for tracking
         for (let i = 0; i < 12; i++) {
-          const installmentDate = new Date(baseDate);
-          installmentDate.setMonth(baseDate.getMonth() + i);
+          const installmentDate = new Date(Date.UTC(
+            baseDate.getUTCFullYear(), 
+            baseDate.getUTCMonth() + i, 
+            baseDate.getUTCDate(), 
+            12, 0, 0
+          ));
           items.push({
             description,
             value: numValue,
