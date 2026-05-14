@@ -13,16 +13,20 @@ export function Contas() {
   const [isAdding, setIsAdding] = useState(false);
 
   const getAccountItems = (accountName: string) => {
-    const installments = parcelas.filter(p => p.bank === accountName);
-    const expenses = gastos.filter(g => g.bank === accountName);
+    const installments = parcelas.filter(p => (p.account || p.bank) === accountName);
+    const expenses = gastos.filter(g => (g.account || g.bank) === accountName);
     return [...installments.map(i => ({ ...i, itemType: 'Parcela' })), ...expenses.map(e => ({ ...e, itemType: 'Gasto' }))]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   const getAccountTotal = (accountName: string) => {
-    return parcelas
-      .filter(p => p.bank === accountName && p.status === 'Pendente')
+    const parcelasTotal = parcelas
+      .filter(p => (p.account || p.bank) === accountName && p.status === 'Pendente')
       .reduce((sum, p) => sum + p.value, 0);
+    const gastosTotal = gastos
+      .filter(g => (g.account || g.bank) === accountName && g.status === 'Pendente')
+      .reduce((sum, g) => sum + g.value, 0);
+    return parcelasTotal + gastosTotal;
   };
 
   const handleEdit = (conta: Conta) => {
@@ -94,7 +98,7 @@ export function Contas() {
                         transition={{ duration: 0.1 }}
                         key={conta.id} 
                         className="iphone-card p-6 shadow-sm cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] border-l-[6px] select-none"
-                        style={{ borderLeftColor: getColorForAccount(conta.name) }}
+                        style={{ borderLeftColor: conta.color || '#333333' }}
                         onPointerDown={() => startPress(conta)}
                         onPointerUp={() => endPress(conta)}
                         onPointerLeave={() => { if(timerRef.current) clearTimeout(timerRef.current); }}
@@ -104,7 +108,7 @@ export function Contas() {
                           <div className="flex items-center gap-4">
                             <div 
                               className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                              style={{ backgroundColor: getColorForAccount(conta.name) }}
+                              style={{ backgroundColor: conta.color || '#333333' }}
                             >
                               {conta.name.charAt(0).toUpperCase()}
                             </div>
@@ -155,7 +159,7 @@ export function Contas() {
               </button>
               <div>
                 <h1 className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                  <span className="w-3 h-8 rounded-full" style={{ backgroundColor: getColorForAccount(viewingLabel.name) }}></span>
+                  <span className="w-3 h-8 rounded-full" style={{ backgroundColor: viewingLabel.color || '#333333' }}></span>
                   {viewingLabel.name}
                 </h1>
                 <p className="text-sm text-slate-400 font-medium">Lançamentos vinculados à etiqueta</p>

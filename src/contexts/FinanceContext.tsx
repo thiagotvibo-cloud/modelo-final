@@ -10,7 +10,7 @@ export type Orcamento = { id: string; category: string; limit: number; spent: nu
 export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; user_id?: string; };
 export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; method?: string; user_id?: string; };
 export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; user_id?: string; };
-export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; user_id?: string; };
+export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; color?: string; user_id?: string; };
 
 export type FinanceContextType = {
   gastos: Gasto[];
@@ -21,6 +21,7 @@ export type FinanceContextType = {
   dividas: Divida[];
   investimentos: Investimento[];
   contas: Conta[];
+  lastSync: string;
   addGasto: (data: Omit<Gasto, 'id'>) => Promise<void>;
   addReceita: (data: Omit<Receita, 'id'>) => Promise<void>;
   addParcela: (data: Omit<Parcela, 'id'>) => Promise<void>;
@@ -58,7 +59,7 @@ const defaultDividas: Divida[] = [];
 const defaultInvestimentos: Investimento[] = [];
 const defaultContas: Conta[] = [];
 
-function usePersistentState<T>(key: string, defaultValue: T, tableName: string, user: any): [T, React.Dispatch<React.SetStateAction<T>>] {
+function usePersistentState<T>(key: string, defaultValue: T, tableName: string, user: any, onFetchSuccess?: () => void): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -95,6 +96,7 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
         console.error(`Error fetching ${tableName} from Supabase:`, error);
       } else if (data && isSubscribed) {
         setState(data as any);
+        onFetchSuccess?.();
       }
     };
     fetchFromSupabase();
@@ -150,14 +152,17 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [gastos, setGastos] = usePersistentState<Gasto[]>('financa_gastos', defaultGastos, 'gastos', user);
-  const [receitas, setReceitas] = usePersistentState<Receita[]>('financa_receitas', defaultReceitas, 'receitas', user);
-  const [parcelas, setParcelas] = usePersistentState<Parcela[]>('financa_parcelas', defaultParcelas, 'parcelas', user);
-  const [orcamentos, setOrcamentos] = usePersistentState<Orcamento[]>('financa_orcamentos', defaultOrcamentos, 'orcamentos', user);
-  const [metas, setMetas] = usePersistentState<Meta[]>('financa_metas', defaultMetas, 'metas', user);
-  const [dividas, setDividas] = usePersistentState<Divida[]>('financa_dividas', defaultDividas, 'dividas', user);
-  const [investimentos, setInvestimentos] = usePersistentState<Investimento[]>('financa_investimentos', defaultInvestimentos, 'investimentos', user);
-  const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas', user);
+  const [lastSync, setLastSync] = useState<string>('');
+  const updateLastSync = () => setLastSync(new Date().toLocaleString());
+
+  const [gastos, setGastos] = usePersistentState<Gasto[]>('financa_gastos', defaultGastos, 'gastos', user, updateLastSync);
+  const [receitas, setReceitas] = usePersistentState<Receita[]>('financa_receitas', defaultReceitas, 'receitas', user, updateLastSync);
+  const [parcelas, setParcelas] = usePersistentState<Parcela[]>('financa_parcelas', defaultParcelas, 'parcelas', user, updateLastSync);
+  const [orcamentos, setOrcamentos] = usePersistentState<Orcamento[]>('financa_orcamentos', defaultOrcamentos, 'orcamentos', user, updateLastSync);
+  const [metas, setMetas] = usePersistentState<Meta[]>('financa_metas', defaultMetas, 'metas', user, updateLastSync);
+  const [dividas, setDividas] = usePersistentState<Divida[]>('financa_dividas', defaultDividas, 'dividas', user, updateLastSync);
+  const [investimentos, setInvestimentos] = usePersistentState<Investimento[]>('financa_investimentos', defaultInvestimentos, 'investimentos', user, updateLastSync);
+  const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas', user, updateLastSync);
 
   const sanitizePayload = (table: string, payload: any) => {
     // 1. Injeção Absoluta de user_id
@@ -218,6 +223,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           balance: Number(payload.balance) || 0,
           expectedBalance: Number(payload.expectedBalance) || 0,
           institution: payload.institution || 'Geral',
+          color: payload.color || '#333333',
         };
         break;
       case 'orcamentos':
@@ -560,7 +566,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   return (
     <FinanceContext.Provider value={{ 
-      gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas,
+      gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas, lastSync,
       addGasto, addReceita, addParcela, addMultipleParcelas, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
       updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela, deleteParcelaSeries,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento,

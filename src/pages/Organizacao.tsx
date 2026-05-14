@@ -27,36 +27,84 @@ export function Organizacao() {
   };
 
   // Get current month items
-  const currentMonthItems = [
-    ...gastos.filter(g => {
-      const d = getSafeDate(g.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    }).map(g => ({ 
-      id: g.id, 
-      description: g.description, 
-      date: g.date, 
-      value: g.value, 
-      status: g.status, 
-      bank: g.account || g.bank || g.method,
-      observations: g.observations || '',
-      parcelaInfo: '',
-      type: 'Gasto' 
-    })),
-    ...parcelas.filter(p => {
-      const d = getSafeDate(p.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    }).map(p => ({ 
-      id: p.id, 
-      description: p.description, 
-      date: p.date, 
-      value: p.value, 
-      status: p.status, 
-      bank: p.account || p.bank || p.method,
-      observations: p.observations || '',
-      parcelaInfo: p.type === 'Parcela' ? `${p.currentInstallment}/${p.totalInstallments}` : p.type,
-      type: 'Parcela'
-    }))
-  ].sort((a, b) => getSafeDate(a.date).getTime() - getSafeDate(b.date).getTime());
+  const filteredGastos = gastos.filter(g => {
+    const d = getSafeDate(g.date);
+    return d.getFullYear() === year && d.getMonth() === month;
+  }).map(g => ({ 
+    id: g.id, 
+    description: g.description, 
+    date: g.date, 
+    value: g.value, 
+    status: g.status, 
+    bank: g.account || g.bank || g.method,
+    observations: g.observations || '',
+    parcelaInfo: '',
+    type: 'Gasto' 
+  }));
+
+  const projectedParcelas: any[] = [];
+  parcelas.forEach(p => {
+    const d = getSafeDate(p.date);
+    const rowYear = d.getFullYear();
+    const rowMonth = d.getMonth();
+    const monthsDiff = (year - rowYear) * 12 + (month - rowMonth);
+
+    if (monthsDiff === 0) {
+      projectedParcelas.push({
+        ...p,
+        displayInstallment: p.currentInstallment,
+        displayDate: d.toISOString(),
+        isExact: true
+      });
+    } else if (monthsDiff > 0) {
+      let shouldProject = false;
+      let newInstallment = p.currentInstallment;
+      
+      if (p.type === 'Parcela') {
+        newInstallment = p.currentInstallment + monthsDiff;
+        if (newInstallment <= p.totalInstallments) {
+          shouldProject = true;
+        }
+      } else if (p.type === 'Assinatura' || p.type === 'Recorrente') {
+        shouldProject = true;
+      }
+
+      if (shouldProject) {
+        const projD = new Date(d);
+        projD.setMonth(d.getMonth() + monthsDiff);
+        projectedParcelas.push({
+          ...p,
+          displayInstallment: newInstallment,
+          displayDate: projD.toISOString(),
+          status: 'Pendente',
+          isExact: false
+        });
+      }
+    }
+  });
+
+  const uniqueParcelas = new Map();
+  projectedParcelas.forEach(p => {
+    const key = p.seriesId ? `${p.seriesId}-${p.displayInstallment}` : `${p.id}-${p.displayInstallment}`;
+    if (!uniqueParcelas.has(key) || p.isExact) {
+      uniqueParcelas.set(key, p);
+    }
+  });
+
+  const filteredParcelas = Array.from(uniqueParcelas.values()).map(p => ({
+    id: p.id,
+    description: p.description,
+    date: p.displayDate,
+    value: p.value,
+    status: p.status,
+    bank: p.account || p.bank || p.method,
+    observations: p.observations || '',
+    parcelaInfo: p.type === 'Parcela' ? `${p.displayInstallment}/${p.totalInstallments}` : p.type,
+    type: 'Parcela'
+  }));
+
+  const currentMonthItems = [...filteredGastos, ...filteredParcelas]
+    .sort((a, b) => getSafeDate(a.date).getTime() - getSafeDate(b.date).getTime());
 
   const inicioMes = currentMonthItems.filter(item => {
     const day = getSafeDate(item.date).getDate();
@@ -126,7 +174,7 @@ export function Organizacao() {
                       {item.bank && (
                         <span 
                           className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
-                          style={{ backgroundColor: getColorForAccount(item.bank) }}
+                          style={{ backgroundColor: contas.find(c => c.name === item.bank)?.color || '#333333' }}
                         >
                           {item.bank}
                         </span>

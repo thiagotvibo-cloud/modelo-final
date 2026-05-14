@@ -106,7 +106,7 @@ export function Parcelas() {
       summary[bankKey] = (summary[bankKey] || 0) + p.value;
     });
     return Object.entries(summary).map(([name, total]) => {
-      return { name, total, color: getColorForAccount(name) };
+      return { name, total, color: contas.find(c => c.name === name)?.color || '#333333' };
     }).sort((a, b) => b.total - a.total);
   };
 
@@ -171,8 +171,8 @@ export function Parcelas() {
                         : 'bg-white dark:bg-[#2C2C2E] text-slate-500 border-black/[0.03] dark:border-white/5'
                     }`}
                     style={{ 
-                      backgroundColor: isSelected ? getColorForAccount(conta.name) : undefined,
-                      borderColor: isSelected ? getColorForAccount(conta.name) : undefined
+                      backgroundColor: isSelected ? (conta.color || '#333333') : undefined,
+                      borderColor: isSelected ? (conta.color || '#333333') : undefined
                     }}
                   >
                     {conta.name}
@@ -275,7 +275,7 @@ export function Parcelas() {
                       {(parcela.account || parcela.bank) && (
                         <span 
                           className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest"
-                          style={{ backgroundColor: getColorForAccount(parcela.account || parcela.bank) }}
+                          style={{ backgroundColor: contas.find(c => c.name === (parcela.account || parcela.bank))?.color || '#333333' }}
                         >
                           {parcela.account || parcela.bank}
                         </span>

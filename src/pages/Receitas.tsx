@@ -7,7 +7,7 @@ import { formatDateShort, getColorForAccount } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Receitas() {
-  const { receitas, updateReceita, deleteReceita } = useFinance();
+  const { receitas, updateReceita, deleteReceita, contas } = useFinance();
   const [editingItem, setEditingItem] = useState<Receita | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -113,7 +113,7 @@ export function Receitas() {
                     {(receita.account || receita.bank) && (
                       <span 
                         className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
-                        style={{ backgroundColor: getColorForAccount(receita.account || receita.bank) }}
+                        style={{ backgroundColor: contas.find(c => c.name === (receita.account || receita.bank))?.color || '#333333' }}
                       >
                         {receita.account || receita.bank}
                       </span>

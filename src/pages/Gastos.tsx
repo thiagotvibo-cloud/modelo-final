@@ -99,7 +99,7 @@ export function Gastos() {
                     {(gasto.account || gasto.bank) && (
                       <span 
                         className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
-                        style={{ backgroundColor: getColorForAccount(gasto.account || gasto.bank) }}
+                        style={{ backgroundColor: contas.find(c => c.name === (gasto.account || gasto.bank))?.color || '#333333' }}
                       >
                         {gasto.account || gasto.bank}
                       </span>
