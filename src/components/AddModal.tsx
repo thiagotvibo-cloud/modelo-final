@@ -10,7 +10,7 @@ type AddModalProps = {
 };
 
 export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalProps) {
-  const { addGasto, addReceita, addParcela, addMultipleParcelas, addDivida, addMeta, addOrcamento, addInvestimento, addConta } = useFinance();
+  const { addGasto, addReceita, addParcela, addMultipleParcelas, addDivida, addMeta, addOrcamento, addInvestimento, addConta, contas } = useFinance();
   
   const [description, setDescription] = useState("");
   const [value, setValue] = useState("");
@@ -26,6 +26,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
 
   const [totalInstallments, setTotalInstallments] = useState("1");
   const [parcelaType, setParcelaType] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>('Parcela');
+  const [bank, setBank] = useState("");
+  const [observations, setObservations] = useState("");
+  const [accountColor, setAccountColor] = useState("#000000");
 
   useEffect(() => {
     if (isOpen) {
@@ -41,8 +44,11 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       setDeadline("");
       setLimit("");
       setParcelaType(defaultType === 'Parcela' ? 'Parcela' : 'Parcela');
+      setBank(contas.length > 0 ? contas[0].name : "");
+      setObservations("");
+      setAccountColor("#000000");
     }
-  }, [isOpen, defaultType]);
+  }, [isOpen, defaultType, contas]);
 
   if (!isOpen) return null;
 
@@ -62,7 +68,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         date: parsedDate,
         method,
         status: isPaid ? 'Pago' : 'Pendente',
-        category
+        category,
+        bank,
+        observations
       });
     } else if (type === 'Receita') {
       if (!description || isNaN(numValue)) return;
@@ -95,7 +103,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
             totalInstallments: count,
             status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
             type: parcelaType,
-            seriesId
+            seriesId,
+            bank,
+            observations
           });
         }
       } else {
@@ -112,7 +122,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
             totalInstallments: 1,
             status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
             type: parcelaType,
-            seriesId
+            seriesId,
+            bank,
+            observations
           });
         }
       }
@@ -156,10 +168,11 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       if (!description || isNaN(numValue)) return;
       addConta({
         name: description,
-        institution: category, // Using category as institution
-        balance: numValue,
-        type: method, // Using method as account type (Corrente, Poupança, etc)
-        expectedBalance: numValue
+        institution: description, // Default to name
+        balance: 0, // Unused
+        type: 'Etiqueta', // Fixed type
+        expectedBalance: 0, // Unused
+        color: accountColor
       });
     }
     
@@ -172,17 +185,56 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         <div className="w-12 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full mx-auto mb-8 sm:hidden pointer-events-none"></div>
         
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-[22px] font-bold text-black dark:text-white tracking-tight">Novo Lançamento</h2>
+          <h2 className="text-[22px] font-bold text-black dark:text-white tracking-tight">
+            {type === 'Conta' ? 'Cadastrar Etiqueta' : 'Novo Lançamento'}
+          </h2>
           <button onClick={onClose} className="p-2.5 text-slate-300 dark:text-slate-500 hover:text-black dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition-all">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <div className="space-y-7 flex-1 overflow-y-auto hide-scrollbar pb-8">
+          {(type === 'Parcela' || type === 'Gasto') && (
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Conta de Origem</label>
+                {contas.length > 0 ? (
+                  <select 
+                    value={bank} 
+                    onChange={(e) => setBank(e.target.value)}
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px] appearance-none"
+                  >
+                    {contas.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                    <option value="">Nenhuma / Outra</option>
+                  </select>
+                ) : (
+                  <input 
+                    type="text"
+                    value={bank} 
+                    onChange={(e) => setBank(e.target.value)}
+                    placeholder="Ex: Nubank, Bradesco..."
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Observações</label>
+                <input 
+                  type="text"
+                  value={observations} 
+                  onChange={(e) => setObservations(e.target.value)}
+                  placeholder="Ex: Presente"
+                  className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
+                />
+              </div>
+            </div>
+          )}
           {type !== 'Orcamento' && (
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">
-                {type === 'Meta' ? 'Título do Objetivo' : type === 'Investimento' ? 'Nome da Aplicação' : type === 'Conta' ? 'Nome da Conta (Apelido)' : 'O que foi?'}
+                {type === 'Meta' ? 'Título do Objetivo' : type === 'Investimento' ? 'Nome da Aplicação' : type === 'Conta' ? 'Nome da Etiqueta' : 'O que foi?'}
               </label>
               <input 
                 type="text"
@@ -191,7 +243,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
                 placeholder={
                   type === 'Meta' ? 'Ex: Viagem para Europa' : 
                   type === 'Investimento' ? 'Ex: Tesouro Selic 2029' :
-                  type === 'Conta' ? 'Ex: Conta Corrente Itaú' :
+                  type === 'Conta' ? 'Ex: Nubank, Bradesco, Shopee...' :
                   'Ex: Compra no mercado'
                 }
                 className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all placeholder:text-slate-300 text-[16px]"
@@ -199,55 +251,11 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
             </div>
           )}
 
-          {type === 'Meta' ? (
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Meta final</label>
-                <input 
-                  type="number"
-                  value={target} 
-                  onChange={(e) => setTarget(e.target.value)}
-                  placeholder="0,00"
-                  className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Já tenho</label>
-                <input 
-                  type="number"
-                  value={value} 
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder="0,00"
-                  className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
-                />
-              </div>
-            </div>
-          ) : type === 'Orcamento' ? (
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Categoria</label>
-                <input 
-                  type="text"
-                  value={category} 
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Limite mensal</label>
-                <input 
-                  type="number"
-                  value={limit} 
-                  onChange={(e) => setLimit(e.target.value)}
-                  className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">
-                {['Investimento', 'Conta'].includes(type) ? 'Valor Atual' : type === 'Parcela' ? 'Valor Total da Compra' : 'Quanto foi?'}
-              </label>
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">
+              {type === 'Conta' ? '' : ['Investimento'].includes(type) ? 'Valor Atual' : type === 'Parcela' ? 'Valor Total da Compra' : 'Quanto foi?'}
+            </label>
+            {type !== 'Conta' && (
               <div className="relative">
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-300">R$</span>
                 <input 
@@ -259,17 +267,91 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
                   className="w-full border-2 border-slate-50 rounded-[28px] pl-14 pr-6 py-7 text-black text-4xl font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all placeholder:text-slate-100"
                 />
               </div>
-              {type === 'Parcela' && parcelaType === 'Parcela' && value && (
-                <div className="px-1 py-1 text-[13px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl mt-2 flex justify-between items-center px-4">
-                  <span>Plano de Pagamento:</span>
-                  <span>{(Number(totalInstallments) || 1)}x de {(parseLocaleNumber(value) / (Number(totalInstallments) || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            )}
+            {type === 'Parcela' && parcelaType === 'Parcela' && value && (
+              <div className="px-1 py-1 text-[13px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl mt-2 flex justify-between items-center px-4">
+                <span>Plano de Pagamento:</span>
+                <span>{(Number(totalInstallments) || 1)}x de {(parseLocaleNumber(value) / (Number(totalInstallments) || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              </div>
+            )}
+          </div>
+
+          {type !== 'Conta' && (
+            <div className="grid grid-cols-2 gap-5">
+              {type === 'Meta' ? (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Meta final</label>
+                  <input 
+                    type="number"
+                    value={target} 
+                    onChange={(e) => setTarget(e.target.value)}
+                    placeholder="0,00"
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
+                  />
                 </div>
-              )}
+              ) : type === 'Orcamento' ? (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Categoria</label>
+                  <input 
+                    type="text"
+                    value={category} 
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
+                  />
+                </div>
+              ) : null}
+              {type === 'Meta' ? (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Já tenho</label>
+                  <input 
+                    type="number"
+                    value={value} 
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="0,00"
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
+                  />
+                </div>
+              ) : type === 'Orcamento' ? (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Limite mensal</label>
+                  <input 
+                    type="number"
+                    value={limit} 
+                    onChange={(e) => setLimit(e.target.value)}
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
+                  />
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {type === 'Conta' && (
+            <div className="space-y-4">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Cor de Identificação</label>
+              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 hide-scrollbar">
+                {[
+                  '#ef4444', '#b91c1c', '#f97316', '#c2410c', '#f59e0b', '#b45309',
+                  '#eab308', '#a16207', '#84cc16', '#4d7c0f', '#22c55e', '#15803d',
+                  '#10b981', '#047857', '#14b8a6', '#0f766e', '#06b6d4', '#0891b2',
+                  '#0ea5e9', '#0369a1', '#3b82f6', '#1d4ed8', '#6366f1', '#4338ca',
+                  '#8b5cf6', '#6d28d9', '#a855f7', '#7e22ce', '#d946ef', '#a21caf',
+                  '#ec4899', '#be185d', '#f43f5e', '#be123c', '#64748b', '#334155',
+                  '#000000'
+                ].map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setAccountColor(c)}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${accountColor === c ? 'border-black dark:border-white scale-110 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-5">
-            {type !== 'Orcamento' && (
+            {type !== 'Orcamento' && type !== 'Conta' && (
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">{type === 'Meta' ? 'Prazo' : 'Quando?'}</label>
                 <input 
@@ -282,7 +364,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
               </div>
             )}
             
-            {['Gasto', 'Receita', 'Parcela', 'Dívida', 'Investimento', 'Conta'].includes(type) && (
+            {['Gasto', 'Receita', 'Parcela', 'Dívida', 'Investimento', 'Conta'].includes(type) && type !== 'Conta' && (
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Tipo principal</label>
                 <div className="relative">
@@ -296,14 +378,14 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
                     <option value="Parcela">💳 Parcelado</option>
                     <option value="Dívida">📉 Dívida</option>
                     <option value="Investimento">📈 Investimento</option>
-                    <option value="Conta">🏦 Conta/Cartão</option>
+                    <option value="Conta">🏷️ Etiqueta de Conta</option>
                   </select>
                 </div>
               </div>
             )}
           </div>
 
-          {['Gasto', 'Receita', 'Parcela', 'Dívida', 'Investimento', 'Conta'].includes(type) && (
+          {['Gasto', 'Receita', 'Parcela', 'Dívida', 'Investimento'].includes(type) && (
             <div className="grid grid-cols-2 gap-5">
               {type === 'Parcela' ? (
                 <div className="space-y-2">
@@ -346,21 +428,6 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
                     <option value="Cripto">Criptoativos</option>
                   </select>
                 </div>
-              ) : type === 'Conta' ? (
-                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Instituição</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all appearance-none text-[16px]"
-                  >
-                    <option value="Nubank">Nubank</option>
-                    <option value="Bradesco">Bradesco</option>
-                    <option value="Itaú">Itaú</option>
-                    <option value="Inter">Inter</option>
-                    <option value="Outro">Outro Banco</option>
-                  </select>
-                </div>
               ) : (
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Forma de pagamento</label>
@@ -373,22 +440,6 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
                     <option value="Crédito">💳 Crédito</option>
                     <option value="Débito">🏦 Débito</option>
                     <option value="Dinheiro">💵 Dinheiro</option>
-                  </select>
-                </div>
-              )}
-
-              {type === 'Conta' && (
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Tipo de Conta</label>
-                  <select
-                    value={method}
-                    onChange={(e) => setMethod(e.target.value)}
-                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all appearance-none text-[16px]"
-                  >
-                    <option value="Corrente">Corrente</option>
-                    <option value="Poupança">Poupança</option>
-                    <option value="Crédito">Cartão de Crédito</option>
-                    <option value="Investimentos">Conta Corretora</option>
                   </select>
                 </div>
               )}

@@ -7,7 +7,7 @@ import { formatDateShort } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Gastos() {
-  const { gastos, updateGasto, deleteGasto } = useFinance();
+  const { gastos, updateGasto, deleteGasto, contas } = useFinance();
   const [editingItem, setEditingItem] = useState<Gasto | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -94,7 +94,17 @@ export function Gastos() {
                  className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${paid ? 'opacity-50 grayscale' : ''}`}
               >
                 <div className="flex-1">
-                  <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2">{gasto.description}</h3>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2 flex items-center gap-2">
+                    {gasto.description}
+                    {gasto.bank && (
+                      <span 
+                        className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
+                        style={{ backgroundColor: contas.find(c => c.name === gasto.bank)?.color || 'rgba(0,0,0,0.1)' }}
+                      >
+                        {gasto.bank}
+                      </span>
+                    )}
+                  </h3>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
                     <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.method}</span>
@@ -102,6 +112,9 @@ export function Gastos() {
                       <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{gasto.category}</span>
                     )}
                   </div>
+                  {gasto.observations && (
+                    <p className="mt-2.5 text-[12px] text-slate-400 italic font-medium leading-tight">“{gasto.observations}”</p>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-3 ml-4">
                   <p className="font-bold text-red-500 text-[18px] tracking-tight">

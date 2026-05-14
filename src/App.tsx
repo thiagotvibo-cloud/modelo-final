@@ -11,6 +11,7 @@ import { Planejamento } from "./pages/Planejamento";
 import { Dividas } from "./pages/Dividas";
 import { Investimentos } from "./pages/Investimentos";
 import { Relatorios } from "./pages/Relatorios";
+import { Organizacao } from "./pages/Organizacao";
 import { Perfil } from "./pages/Perfil";
 import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -49,6 +50,7 @@ export default function App() {
               <Route path="contas" element={<Contas />} />
               <Route path="metas" element={<Metas />} />
               <Route path="planejamento" element={<Planejamento />} />
+              <Route path="organizacao" element={<Organizacao />} />
               <Route path="dividas" element={<Dividas />} />
               <Route path="investimentos" element={<Investimentos />} />
               <Route path="relatorios" element={<Relatorios />} />

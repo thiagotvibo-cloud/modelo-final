@@ -1,4 +1,4 @@
-import { Plus, Check, Pencil, Trash2, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Check, Pencil, Trash2, CreditCard, ChevronLeft, ChevronRight, LayoutGrid, Calendar, Filter } from "lucide-react";
 import React, { useState } from "react";
 import { useFinance, Parcela } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
@@ -7,10 +7,13 @@ import { formatDateShort } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Parcelas() {
-  const { parcelas, updateParcela, deleteParcela, deleteParcelaSeries } = useFinance();
+  const { parcelas, updateParcela, deleteParcela, deleteParcelaSeries, contas } = useFinance();
   const [editingItem, setEditingItem] = useState<Parcela | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [sortByDate, setSortByDate] = useState(true);
+
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const getSafeDate = (dateStr: string) => {
     const datePart = dateStr.split('T')[0];
@@ -23,6 +26,11 @@ export function Parcelas() {
     return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
   };
 
+  const filterByLabel = (p: Parcela) => {
+    if (selectedLabels.length === 0) return true;
+    return selectedLabels.includes(p.bank || '');
+  };
+
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + offset);
@@ -32,7 +40,7 @@ export function Parcelas() {
   const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-  const currentParcelas = parcelas.filter(p => filterByDate(p));
+  const currentParcelas = parcelas.filter(p => filterByDate(p) && filterByLabel(p));
 
   const handleEdit = (parcela: Parcela) => {
     setEditingItem(parcela);
@@ -60,11 +68,15 @@ export function Parcelas() {
   };
 
   const [activeTab, setActiveTab] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>('Parcela');
-  const [viewMode, setViewMode] = useState<'monthly' | 'series'>('monthly');
+  const [viewMode, setViewMode] = useState<'monthly' | 'series' | 'banks'>('monthly');
 
   const filteredParcelas = viewMode === 'monthly' 
     ? currentParcelas.filter(p => p.type === activeTab)
     : parcelas.filter(p => p.type === activeTab);
+
+  const sortedParcelas = sortByDate 
+    ? [...filteredParcelas].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    : filteredParcelas;
 
   // Group by series for the 'series' view mode
   const getGroupedParcelas = () => {
@@ -86,7 +98,21 @@ export function Parcelas() {
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
-  const displayParcelas = viewMode === 'monthly' ? filteredParcelas : getGroupedParcelas();
+  const getBankSummary = () => {
+    const summary: Record<string, number> = {};
+    // Only count Pendente installments for the summary
+    parcelas.filter(p => p.status === 'Pendente').forEach(p => {
+      const bankKey = p.bank || 'Não Informado';
+      summary[bankKey] = (summary[bankKey] || 0) + p.value;
+    });
+    return Object.entries(summary).map(([name, total]) => {
+      const account = contas.find(c => c.name === name);
+      return { name, total, color: account?.color };
+    }).sort((a, b) => b.total - a.total);
+  };
+
+  const displayParcelas = viewMode === 'monthly' ? sortedParcelas : viewMode === 'series' ? getGroupedParcelas() : [];
+  const bankSummary = getBankSummary();
 
   return (
     <div className="w-full">
@@ -97,13 +123,22 @@ export function Parcelas() {
         </div>
         <div className="flex gap-2">
           <button 
+            onClick={() => setViewMode(viewMode === 'banks' ? 'monthly' : 'banks')}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all border ${
+              viewMode === 'banks' ? 'bg-black text-white border-black' : 'bg-white dark:bg-[#2C2C2E] text-slate-400 border-slate-100 dark:border-white/5'
+            }`}
+            title="Resumo por Banco"
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <button 
             onClick={() => setViewMode(viewMode === 'monthly' ? 'series' : 'monthly')}
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all border ${
               viewMode === 'series' ? 'bg-black text-white border-black' : 'bg-white dark:bg-[#2C2C2E] text-slate-400 border-slate-100 dark:border-white/5'
             }`}
             title={viewMode === 'monthly' ? 'Ver todas as compras' : 'Ver visão mensal'}
           >
-            <CreditCard className="w-6 h-6" />
+            <CreditCard className="w-5 h-5" />
           </button>
           <button 
             onClick={() => setIsAdding(true)}
@@ -111,6 +146,52 @@ export function Parcelas() {
           >
             <Plus className="w-6 h-6" />
           </button>
+        </div>
+      </div>
+
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col gap-3">
+          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] px-1">Filtrar por Etiqueta</label>
+          <div className="flex flex-wrap gap-2">
+            {contas.length > 0 ? (
+              contas.map(conta => {
+                const isSelected = selectedLabels.includes(conta.name);
+                return (
+                  <button
+                    key={conta.id}
+                    onClick={() => {
+                      setSelectedLabels(prev => 
+                        prev.includes(conta.name) 
+                          ? prev.filter(l => l !== conta.name)
+                          : [...prev, conta.name]
+                      );
+                    }}
+                    className={`px-4 py-2 rounded-xl text-[12px] font-bold transition-all border-2 ${
+                      isSelected 
+                        ? 'text-white' 
+                        : 'bg-white dark:bg-[#2C2C2E] text-slate-500 border-black/[0.03] dark:border-white/5'
+                    }`}
+                    style={{ 
+                      backgroundColor: isSelected ? conta.color : undefined,
+                      borderColor: isSelected ? conta.color : undefined
+                    }}
+                  >
+                    {conta.name}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="text-[12px] text-slate-400 italic px-1">Nenhuma etiqueta cadastrada</p>
+            )}
+            {selectedLabels.length > 0 && (
+              <button 
+                onClick={() => setSelectedLabels([])}
+                className="px-4 py-2 rounded-xl text-[12px] font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all uppercase tracking-widest"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -149,18 +230,29 @@ export function Parcelas() {
 
       <div className="space-y-4">
         <AnimatePresence mode="popLayout">
-          {displayParcelas.length > 0 ? displayParcelas.map((item, index) => {
+          {viewMode === 'banks' ? (
+            bankSummary.map((bank, index) => (
+              <motion.div
+                key={bank.name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="iphone-card p-6 flex justify-between items-center border-l-4"
+                style={{ borderLeftColor: bank.color || 'transparent' }}
+              >
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight">{bank.name}</h3>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total em aberto</p>
+                </div>
+                <p className="font-bold text-red-500 text-[20px]">{bank.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+              </motion.div>
+            ))
+          ) : displayParcelas.length > 0 ? displayParcelas.map((item, index) => {
             const parcela = item as Parcela & { installments?: Parcela[], totalPaid?: number, isCompleted?: boolean };
             const isPago = parcela.status === 'Pago';
             const isRecorrente = parcela.type !== 'Parcela';
             const currentInstallmentNumber = viewMode === 'monthly' ? parcela.currentInstallment : (parcela.totalPaid || 0);
-            const perc = isRecorrente ? 100 : Math.round((currentInstallmentNumber / parcela.totalInstallments) * 100);
             
-            const remainingCount = viewMode === 'monthly' 
-              ? (parcela.totalInstallments - (isPago ? parcela.currentInstallment : parcela.currentInstallment - 1))
-              : (parcela.totalInstallments - (parcela.totalPaid || 0));
-              
-            const remaining = isRecorrente ? 0 : remainingCount * parcela.value;
             const totalValue = isRecorrente ? parcela.value : parcela.value * parcela.totalInstallments;
             const formattedDate = formatDateShort(parcela.date);
             const displayTitle = viewMode === 'monthly' ? parcela.description : (parcela.description.split(' (')[0]);
@@ -176,13 +268,26 @@ export function Parcelas() {
                  onClick={() => handleEdit(parcela)}
                  className={`iphone-card p-6 cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${isPago && parcela.currentInstallment === parcela.totalInstallments && !isRecorrente && viewMode === 'monthly' ? 'opacity-40 grayscale' : ''} ${parcela.isCompleted && viewMode === 'series' ? 'opacity-40 grayscale' : ''}`}
               >
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2">{displayTitle}</h3>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 pr-4">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2 flex items-center gap-2">
+                      {displayTitle}
+                      {parcela.bank && (
+                        <span 
+                          className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest"
+                          style={{ backgroundColor: contas.find(c => c.name === parcela.bank)?.color || 'rgba(0,0,0,0.1)' }}
+                        >
+                          {parcela.bank}
+                        </span>
+                      )}
+                    </h3>
                     <div className="flex items-center gap-3">
                       <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{formattedDate}</span>
                       <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{parcela.method}</span>
                     </div>
+                    {parcela.observations && (
+                      <p className="mt-3 text-[12px] text-slate-400 italic font-medium leading-tight">“{parcela.observations}”</p>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <p className="font-bold text-red-500 text-[18px] tracking-tight">
@@ -190,11 +295,11 @@ export function Parcelas() {
                     </p>
                     {!isRecorrente && (
                       <div className="text-right">
-                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-widest">
+                        <span className="text-[12px] font-extrabold text-white bg-red-500 px-2.5 py-1 rounded-lg tracking-widest inline-block shadow-sm">
                           {currentInstallmentNumber} DE {parcela.totalInstallments}
                         </span>
                         {viewMode === 'monthly' && (
-                          <div className="mt-1 flex flex-col items-end">
+                          <div className="mt-1.5 flex flex-col items-end">
                             <span className="text-[9px] font-bold text-slate-300 uppercase leading-none">Compra:</span>
                             <p className="text-[11px] font-bold text-slate-400 dark:text-slate-400">{totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                           </div>
@@ -204,33 +309,14 @@ export function Parcelas() {
                   </div>
                 </div>
                 
-                {!isRecorrente && (
-                  <div className="mb-6">
-                    <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden p-0.5 border border-black/[0.03] dark:border-white/5 mb-3">
-                      <div className={`h-full bg-black dark:bg-white rounded-full transition-all duration-1000 ease-out`} style={{ width: `${perc}%` }}></div>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                      <span>{viewMode === 'monthly' ? `Restam ${parcela.totalInstallments - parcela.currentInstallment} vezes` : `${parcela.totalInstallments - (parcela.totalPaid || 0)} parcelas restantes`}</span>
-                      <span className="text-slate-900 dark:text-white bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-md">
-                        {viewMode === 'monthly' ? `FALTA: ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : `TOTAL RESTANTE: ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-4 pt-5 border-t border-black/[0.02] dark:border-white/5">
-                   {viewMode === 'monthly' && (isRecorrente || parcela.currentInstallment < parcela.totalInstallments) && (
+                <div className="flex items-center gap-4 pt-5 mt-6 border-t border-black/[0.02] dark:border-white/5">
+                   {viewMode === 'monthly' && (
                      <button 
                        onClick={(e) => toggleStatus(e, parcela)}
                        className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[13px] font-bold transition-all shadow-sm ${isPago ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-slate-200'}`}
                      >
                        {isPago ? <><Check className="w-4 h-4 stroke-[3]" /> Pago</> : <><Check className="w-4 h-4" /> Marcar como pago</>}
                      </button>
-                   )}
-                   {viewMode === 'series' && (
-                     <div className="flex-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center">
-                       Clique para gerenciar toda a compra
-                     </div>
                    )}
                    <button 
                      onClick={(e) => { 

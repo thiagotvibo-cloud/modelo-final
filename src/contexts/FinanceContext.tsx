@@ -1,24 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
-export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; };
+export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; observations?: string; };
 export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; };
-export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; };
+export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; observations?: string; };
 
 export type Orcamento = { id: string; category: string; limit: number; spent: number; };
 export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; };
 export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; method?: string; };
 export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; };
-export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; };
-
-export type NotificationSettings = {
-  enabled: boolean;
-  gastos: boolean;
-  parcelas: boolean;
-  receitas: boolean;
-  metas: boolean;
-  orcamentos: boolean;
-};
+export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; color?: string; };
 
 export type FinanceContextType = {
   gastos: Gasto[];
@@ -29,7 +21,6 @@ export type FinanceContextType = {
   dividas: Divida[];
   investimentos: Investimento[];
   contas: Conta[];
-  notificationSettings: NotificationSettings;
   addGasto: (data: Omit<Gasto, 'id'>) => void;
   addReceita: (data: Omit<Receita, 'id'>) => void;
   addParcela: (data: Omit<Parcela, 'id'>) => void;
@@ -56,7 +47,6 @@ export type FinanceContextType = {
   deleteDivida: (id: string) => void;
   deleteInvestimento: (id: string) => void;
   deleteConta: (id: string) => void;
-  updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
 };
 
 const defaultGastos: Gasto[] = [];
@@ -68,16 +58,7 @@ const defaultDividas: Divida[] = [];
 const defaultInvestimentos: Investimento[] = [];
 const defaultContas: Conta[] = [];
 
-const defaultNotificationSettings: NotificationSettings = {
-  enabled: true,
-  gastos: true,
-  parcelas: true,
-  receitas: true,
-  metas: true,
-  orcamentos: true,
-};
-
-function usePersistentState<T>(key: string, defaultValue: T, tableName: string): [T, React.Dispatch<React.SetStateAction<T>>] {
+function usePersistentState<T>(key: string, defaultValue: T, tableName: string, user: any): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -96,20 +77,66 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string):
     }
   }, [key, state]);
 
-  // Sync with Supabase on mount
+  // Sync with Supabase on mount and Subscribe to changes
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase || !user) {
+      // If user logs out, we might want to clear local state to default
+      if (!user && supabase) {
+        setState(defaultValue);
+      }
+      return;
+    }
     
+    let isSubscribed = true;
+
     const fetchFromSupabase = async () => {
       const { data, error } = await supabase.from(tableName).select('*');
       if (error) {
         console.error(`Error fetching ${tableName} from Supabase:`, error);
-      } else if (data && data.length > 0) {
+      } else if (data && isSubscribed) {
         setState(data as any);
       }
     };
     fetchFromSupabase();
-  }, [tableName]);
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel(`rt-${tableName}-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: tableName },
+        (payload) => {
+          if (!isSubscribed) return;
+
+          setState((prev: any) => {
+            if (Array.isArray(prev)) {
+              if (payload.eventType === 'INSERT') {
+                const alreadyExists = prev.some(item => item.id === payload.new.id);
+                if (alreadyExists) return prev;
+                return [...prev, payload.new];
+              }
+              if (payload.eventType === 'UPDATE') {
+                return prev.map(item => item.id === payload.new.id ? payload.new : item);
+              }
+              if (payload.eventType === 'DELETE') {
+                return prev.filter(item => item.id !== payload.old.id);
+              }
+            } else {
+              // Non-array state (like notification_settings)
+              if (payload.eventType === 'DELETE') return defaultValue;
+              return payload.new;
+            }
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isSubscribed = false;
+      supabase.removeChannel(channel);
+    };
+  }, [tableName, user]);
 
   return [state, setState];
 }
@@ -117,15 +144,15 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string):
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const [gastos, setGastos] = usePersistentState<Gasto[]>('financa_gastos', defaultGastos, 'gastos');
-  const [receitas, setReceitas] = usePersistentState<Receita[]>('financa_receitas', defaultReceitas, 'receitas');
-  const [parcelas, setParcelas] = usePersistentState<Parcela[]>('financa_parcelas', defaultParcelas, 'parcelas');
-  const [orcamentos, setOrcamentos] = usePersistentState<Orcamento[]>('financa_orcamentos', defaultOrcamentos, 'orcamentos');
-  const [metas, setMetas] = usePersistentState<Meta[]>('financa_metas', defaultMetas, 'metas');
-  const [dividas, setDividas] = usePersistentState<Divida[]>('financa_dividas', defaultDividas, 'dividas');
-  const [investimentos, setInvestimentos] = usePersistentState<Investimento[]>('financa_investimentos', defaultInvestimentos, 'investimentos');
-  const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas');
-  const [notificationSettings, setNotificationSettings] = usePersistentState<NotificationSettings>('financa_notification_settings', defaultNotificationSettings, 'notification_settings');
+  const { user } = useAuth();
+  const [gastos, setGastos] = usePersistentState<Gasto[]>('financa_gastos', defaultGastos, 'gastos', user);
+  const [receitas, setReceitas] = usePersistentState<Receita[]>('financa_receitas', defaultReceitas, 'receitas', user);
+  const [parcelas, setParcelas] = usePersistentState<Parcela[]>('financa_parcelas', defaultParcelas, 'parcelas', user);
+  const [orcamentos, setOrcamentos] = usePersistentState<Orcamento[]>('financa_orcamentos', defaultOrcamentos, 'orcamentos', user);
+  const [metas, setMetas] = usePersistentState<Meta[]>('financa_metas', defaultMetas, 'metas', user);
+  const [dividas, setDividas] = usePersistentState<Divida[]>('financa_dividas', defaultDividas, 'dividas', user);
+  const [investimentos, setInvestimentos] = usePersistentState<Investimento[]>('financa_investimentos', defaultInvestimentos, 'investimentos', user);
+  const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas', user);
 
   const syncUpsert = async (table: string, id: string, data: any) => {
     if (supabase) {
@@ -310,22 +337,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncDelete('contas', id);
   };
 
-  const updateNotificationSettings = (settings: Partial<NotificationSettings>) => {
-    setNotificationSettings(prev => {
-      const newSettings = { ...prev, ...settings };
-      syncUpsert('notification_settings', 'default', newSettings);
-      return newSettings;
-    });
-  };
-
   return (
     <FinanceContext.Provider value={{ 
       gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas,
-      notificationSettings,
       addGasto, addReceita, addParcela, addMultipleParcelas, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
       updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela, deleteParcelaSeries,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento,
-      updateConta, deleteConta, updateNotificationSettings
+      updateConta, deleteConta
     }}>
       {children}
     </FinanceContext.Provider>
