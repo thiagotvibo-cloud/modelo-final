@@ -159,12 +159,115 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [investimentos, setInvestimentos] = usePersistentState<Investimento[]>('financa_investimentos', defaultInvestimentos, 'investimentos', user);
   const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas', user);
 
+  const sanitizePayload = (table: string, payload: any) => {
+    // 1. Injeção Absoluta de user_id
+    const base = {
+      id: payload.id,
+      user_id: user?.id,
+    };
+
+    let clean: any = { ...base };
+
+    // 2. Extrair Apenas Colunas Válidas por Tabela + Fallbacks
+    switch (table) {
+      case 'gastos':
+        clean = {
+          ...clean,
+          description: payload.description || 'Gasto sem nome',
+          date: payload.date || new Date().toISOString().split('T')[0],
+          value: Number(payload.value) || 0,
+          method: payload.method || 'Outros',
+          account: payload.account || payload.bank || 'Outros',
+          status: payload.status || 'Pendente',
+        };
+        break;
+      case 'receitas':
+        clean = {
+          ...clean,
+          description: payload.description || 'Receita sem nome',
+          date: payload.date || new Date().toISOString().split('T')[0],
+          value: Number(payload.value) || 0,
+          category: payload.category || 'Outras',
+          status: payload.status || 'Previsto',
+        };
+        break;
+      case 'parcelas':
+        clean = {
+          ...clean,
+          description: payload.description || 'Parcela sem nome',
+          date: payload.date || new Date().toISOString().split('T')[0],
+          value: Number(payload.value) || 0,
+          method: payload.method || 'Outros',
+          account: payload.account || payload.bank || 'Outros',
+          currentInstallment: Number(payload.currentInstallment) || 1,
+          totalInstallments: Number(payload.totalInstallments) || 1,
+          status: payload.status || 'Pendente',
+          type: payload.type || 'Parcela',
+        };
+        break;
+      case 'contas':
+        clean = {
+          ...clean,
+          name: payload.name || 'Nova Conta',
+          type: payload.type || 'Corrente',
+          balance: Number(payload.balance) || 0,
+          expectedBalance: Number(payload.expectedBalance) || 0,
+          institution: payload.institution || 'Geral',
+        };
+        break;
+      case 'orcamentos':
+        clean = {
+          ...clean,
+          category: payload.category || 'Geral',
+          limit: Number(payload.limit) || 0,
+          spent: Number(payload.spent) || 0,
+        };
+        break;
+      case 'metas':
+        clean = {
+          ...clean,
+          title: payload.title || 'Nova Meta',
+          target: Number(payload.target) || 0,
+          saved: Number(payload.saved) || 0,
+          deadline: payload.deadline || new Date().toISOString().split('T')[0],
+        };
+        break;
+      case 'dividas':
+        clean = {
+          ...clean,
+          description: payload.description || 'Nova Dívida',
+          totalAmount: Number(payload.totalAmount) || 0,
+          paidAmount: Number(payload.paidAmount) || 0,
+          interestRate: Number(payload.interestRate) || 0,
+        };
+        break;
+      case 'investimentos':
+        clean = {
+          ...clean,
+          name: payload.name || 'Novo Investimento',
+          type: payload.type || 'Renda Fixa',
+          balance: Number(payload.balance) || 0,
+          yield: Number(payload.yield) || 0,
+        };
+        break;
+      default:
+        console.warn(`Table ${table} not explicitly mapped for sanitization.`);
+        clean = { ...payload, user_id: user?.id };
+        break;
+    }
+
+    return clean;
+  };
+
   const syncUpsert = async (table: string, id: string, data: any) => {
     if (!supabase || !user) {
       alert("Usuário não autenticado.");
       return false;
     }
-    const { error } = await supabase.from(table).upsert({ id, ...data, user_id: user.id });
+    
+    const payload = sanitizePayload(table, { id, ...data, user_id: user.id });
+
+    const { error } = await supabase.from(table).upsert(payload);
     if (error) {
       console.error(`Error syncing upsert to ${table}:`, error);
       alert(`Erro ao salvar (${table}): ${error.message}`);
@@ -276,7 +379,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
     const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user.id })) as Parcela[];
     if (supabase) {
-      const { error } = await supabase.from('parcelas').upsert(newItemsWithIds);
+      const sanitizedItems = newItemsWithIds.map(item => sanitizePayload('parcelas', item));
+      const { error } = await supabase.from('parcelas').upsert(sanitizedItems);
       if (error) {
         console.error('Error syncing multiple parcelas:', error);
         alert(`Erro ao salvar parcelas: ${error.message}`);
