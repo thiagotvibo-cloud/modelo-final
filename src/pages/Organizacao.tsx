@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useFinance, Gasto, Parcela } from '../contexts/FinanceContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar, Wallet, Check, AlertCircle, Info } from 'lucide-react';
+import { getColorForAccount } from '../lib/utils';
 
 export function Organizacao() {
   const { gastos, parcelas, contas } = useFinance();
@@ -36,7 +37,7 @@ export function Organizacao() {
       date: g.date, 
       value: g.value, 
       status: g.status, 
-      bank: g.bank || g.method,
+      bank: g.account || g.bank || g.method,
       observations: g.observations || '',
       parcelaInfo: '',
       type: 'Gasto' 
@@ -50,7 +51,7 @@ export function Organizacao() {
       date: p.date, 
       value: p.value, 
       status: p.status, 
-      bank: p.bank || p.method,
+      bank: p.account || p.bank || p.method,
       observations: p.observations || '',
       parcelaInfo: p.type === 'Parcela' ? `${p.currentInstallment}/${p.totalInstallments}` : p.type,
       type: 'Parcela'
@@ -125,7 +126,7 @@ export function Organizacao() {
                       {item.bank && (
                         <span 
                           className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
-                          style={{ backgroundColor: contas.find(c => c.name === item.bank)?.color || 'rgba(0,0,0,0.1)' }}
+                          style={{ backgroundColor: getColorForAccount(item.bank) }}
                         >
                           {item.bank}
                         </span>

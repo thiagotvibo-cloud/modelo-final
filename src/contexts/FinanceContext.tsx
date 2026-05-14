@@ -2,15 +2,15 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
-export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; observations?: string; user_id?: string; };
-export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; user_id?: string; };
-export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; observations?: string; user_id?: string; };
+export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; account?: string; observations?: string; user_id?: string; };
+export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; user_id?: string; bank?: string; account?: string; observations?: string; };
+export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; account?: string; observations?: string; user_id?: string; };
 
 export type Orcamento = { id: string; category: string; limit: number; spent: number; user_id?: string; };
 export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; user_id?: string; };
 export type Divida = { id: string; description: string; totalAmount: number; paidAmount: number; interestRate: number; method?: string; user_id?: string; };
 export type Investimento = { id: string; name: string; type: string; balance: number; yield: number; user_id?: string; };
-export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; color?: string; user_id?: string; };
+export type Conta = { id: string; name: string; institution: string; balance: number; type: string; expectedBalance: number; user_id?: string; };
 
 export type FinanceContextType = {
   gastos: Gasto[];
@@ -179,6 +179,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           method: payload.method || 'Outros',
           account: payload.account || payload.bank || 'Outros',
           status: payload.status || 'Pendente',
+          category: payload.category || 'Outros',
+          observations: payload.observations || '',
         };
         break;
       case 'receitas':
@@ -189,6 +191,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           value: Number(payload.value) || 0,
           category: payload.category || 'Outras',
           status: payload.status || 'Previsto',
+          account: payload.account || payload.bank || 'Outros',
+          observations: payload.observations || '',
         };
         break;
       case 'parcelas':
@@ -203,6 +207,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           totalInstallments: Number(payload.totalInstallments) || 1,
           status: payload.status || 'Pendente',
           type: payload.type || 'Parcela',
+          observations: payload.observations || '',
         };
         break;
       case 'contas':

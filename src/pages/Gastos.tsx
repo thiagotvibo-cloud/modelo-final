@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useFinance, Gasto } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
-import { formatDateShort } from "../lib/utils";
+import { formatDateShort, getColorForAccount } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Gastos() {
@@ -96,12 +96,12 @@ export function Gastos() {
                 <div className="flex-1">
                   <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2 flex items-center gap-2">
                     {gasto.description}
-                    {gasto.bank && (
+                    {(gasto.account || gasto.bank) && (
                       <span 
                         className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
-                        style={{ backgroundColor: contas.find(c => c.name === gasto.bank)?.color || 'rgba(0,0,0,0.1)' }}
+                        style={{ backgroundColor: getColorForAccount(gasto.account || gasto.bank) }}
                       >
-                        {gasto.bank}
+                        {gasto.account || gasto.bank}
                       </span>
                     )}
                   </h3>

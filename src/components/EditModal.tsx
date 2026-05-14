@@ -99,8 +99,8 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                   const inputType = isDate ? 'date' : 'text';
                   const inputMode = isNumeric ? 'decimal' : undefined;
 
-                  // Only show name and color for items that seem to be 'Conta' (Labels)
-                  if (initialData.type === 'Etiqueta' && !['name', 'color'].includes(key)) {
+                  // Only show name for items that seem to be 'Conta' (Labels)
+                  if (initialData.type === 'Etiqueta' && !['name'].includes(key)) {
                     return null;
                   }
 
@@ -180,30 +180,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
                   }
 
                   if (key === 'color') {
-                    return (
-                      <div key={key} className="space-y-4 pt-2">
-                        <label className="block text-[13px] font-semibold text-slate-500 mb-1.5">{labels[key] || key}</label>
-                        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1 hide-scrollbar">
-                          {[
-                            '#ef4444', '#b91c1c', '#f97316', '#c2410c', '#f59e0b', '#b45309',
-                            '#eab308', '#a16207', '#84cc16', '#4d7c0f', '#22c55e', '#15803d',
-                            '#10b981', '#047857', '#14b8a6', '#0f766e', '#06b6d4', '#0891b2',
-                            '#0ea5e9', '#0369a1', '#3b82f6', '#1d4ed8', '#6366f1', '#4338ca',
-                            '#8b5cf6', '#6d28d9', '#a855f7', '#7e22ce', '#d946ef', '#a21caf',
-                            '#ec4899', '#be185d', '#f43f5e', '#be123c', '#64748b', '#334155',
-                            '#000000'
-                          ].map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => setFormData((prev: any) => ({ ...prev, color: c }))}
-                              className={`w-7 h-7 rounded-full border-2 transition-all ${formData.color === c ? 'border-black dark:border-white scale-110 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'}`}
-                              style={{ backgroundColor: c }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
+                    return null;
                   }
 
                   return (

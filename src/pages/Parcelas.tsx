@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useFinance, Parcela } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
-import { formatDateShort } from "../lib/utils";
+import { formatDateShort, getColorForAccount } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Parcelas() {
@@ -28,7 +28,7 @@ export function Parcelas() {
 
   const filterByLabel = (p: Parcela) => {
     if (selectedLabels.length === 0) return true;
-    return selectedLabels.includes(p.bank || '');
+    return selectedLabels.includes(p.account || p.bank || '');
   };
 
   const changeMonth = (offset: number) => {
@@ -102,12 +102,11 @@ export function Parcelas() {
     const summary: Record<string, number> = {};
     // Only count Pendente installments for the summary
     parcelas.filter(p => p.status === 'Pendente').forEach(p => {
-      const bankKey = p.bank || 'Não Informado';
+      const bankKey = p.account || p.bank || 'Não Informado';
       summary[bankKey] = (summary[bankKey] || 0) + p.value;
     });
     return Object.entries(summary).map(([name, total]) => {
-      const account = contas.find(c => c.name === name);
-      return { name, total, color: account?.color };
+      return { name, total, color: getColorForAccount(name) };
     }).sort((a, b) => b.total - a.total);
   };
 
@@ -172,8 +171,8 @@ export function Parcelas() {
                         : 'bg-white dark:bg-[#2C2C2E] text-slate-500 border-black/[0.03] dark:border-white/5'
                     }`}
                     style={{ 
-                      backgroundColor: isSelected ? conta.color : undefined,
-                      borderColor: isSelected ? conta.color : undefined
+                      backgroundColor: isSelected ? getColorForAccount(conta.name) : undefined,
+                      borderColor: isSelected ? getColorForAccount(conta.name) : undefined
                     }}
                   >
                     {conta.name}
@@ -273,12 +272,12 @@ export function Parcelas() {
                   <div className="flex-1 pr-4">
                     <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2 flex items-center gap-2">
                       {displayTitle}
-                      {parcela.bank && (
+                      {(parcela.account || parcela.bank) && (
                         <span 
                           className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest"
-                          style={{ backgroundColor: contas.find(c => c.name === parcela.bank)?.color || 'rgba(0,0,0,0.1)' }}
+                          style={{ backgroundColor: getColorForAccount(parcela.account || parcela.bank) }}
                         >
-                          {parcela.bank}
+                          {parcela.account || parcela.bank}
                         </span>
                       )}
                     </h3>

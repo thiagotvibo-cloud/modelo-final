@@ -36,6 +36,30 @@ export function getLocalYYYYMMDD() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+export function getColorForAccount(name: string | undefined): string {
+  if (!name) return 'rgba(0,0,0,0.1)';
+  const n = name.toUpperCase();
+  if (n.includes('NUBANK')) return '#8B3DFF';
+  if (n.includes('ITAU') || n.includes('ITAÚ')) return '#EC7000';
+  if (n.includes('BRADESCO')) return '#CC092F';
+  if (n.includes('SANTANDER')) return '#CC0000';
+  if (n.includes('CAIXA')) return '#005CA9';
+  if (n.includes('INTER')) return '#FF7A00';
+  if (n.includes('C6')) return '#242424';
+  if (n.includes('BB') || n.includes('BRASIL')) return '#FCEE21';
+  if (n.includes('BTG')) return '#002B49';
+  if (n.includes('XP')) return '#000000';
+  if (n.includes('PIX')) return '#32BCAD';
+  if (n.includes('DINHEIRO') || n.includes('CASH')) return '#22C55E';
+  
+  let hash = 0;
+  for (let i = 0; i < n.length; i++) {
+    hash = n.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const color = Math.abs(hash).toString(16).substring(0, 6);
+  return `#${'000000'.substring(0, 6 - color.length)}${color}`;
+}
+
 export function parseLocaleNumber(val: string) {
   if (!val) return 0;
   // Remove all non-numeric characters except comma and dot

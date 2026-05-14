@@ -28,7 +28,6 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
   const [parcelaType, setParcelaType] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>('Parcela');
   const [bank, setBank] = useState("");
   const [observations, setObservations] = useState("");
-  const [accountColor, setAccountColor] = useState("#000000");
 
   useEffect(() => {
     if (isOpen) {
@@ -46,7 +45,6 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       setParcelaType(defaultType === 'Parcela' ? 'Parcela' : 'Parcela');
       setBank(contas.length > 0 ? contas[0].name : "");
       setObservations("");
-      setAccountColor("#000000");
     }
   }, [isOpen, defaultType, contas]);
 
@@ -172,7 +170,6 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         balance: 0, // Unused
         type: 'Etiqueta', // Fixed type
         expectedBalance: 0, // Unused
-        color: accountColor
       });
     }
     
@@ -325,30 +322,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
             </div>
           )}
 
-          {type === 'Conta' && (
-            <div className="space-y-4">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Cor de Identificação</label>
-              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 hide-scrollbar">
-                {[
-                  '#ef4444', '#b91c1c', '#f97316', '#c2410c', '#f59e0b', '#b45309',
-                  '#eab308', '#a16207', '#84cc16', '#4d7c0f', '#22c55e', '#15803d',
-                  '#10b981', '#047857', '#14b8a6', '#0f766e', '#06b6d4', '#0891b2',
-                  '#0ea5e9', '#0369a1', '#3b82f6', '#1d4ed8', '#6366f1', '#4338ca',
-                  '#8b5cf6', '#6d28d9', '#a855f7', '#7e22ce', '#d946ef', '#a21caf',
-                  '#ec4899', '#be185d', '#f43f5e', '#be123c', '#64748b', '#334155',
-                  '#000000'
-                ].map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setAccountColor(c)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${accountColor === c ? 'border-black dark:border-white scale-110 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'}`}
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Cor removida (resolvida via utils) */}
 
           <div className="grid grid-cols-2 gap-5">
             {type !== 'Orcamento' && type !== 'Conta' && (
