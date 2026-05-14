@@ -189,7 +189,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addGasto = (data: Omit<Gasto, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Gasto;
+    const newItem = { id, ...data, user_id: user?.id } as Gasto;
     setGastos(prev => [...prev, newItem]);
     syncUpsert('gastos', id, newItem);
     // Update budget if possible
@@ -218,7 +218,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addReceita = (data: Omit<Receita, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Receita;
+    const newItem = { id, ...data, user_id: user?.id } as Receita;
     setReceitas(prev => [...prev, newItem]);
     syncUpsert('receitas', id, newItem);
   };
@@ -237,13 +237,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addParcela = (data: Omit<Parcela, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Parcela;
+    const newItem = { id, ...data, user_id: user?.id } as Parcela;
     setParcelas(prev => [...prev, newItem]);
     syncUpsert('parcelas', id, newItem);
   };
 
   const addMultipleParcelas = async (items: Omit<Parcela, 'id'>[]) => {
-    const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user?.id })) as Parcela[];
+    if (!user) return;
+    const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user.id })) as Parcela[];
     setParcelas(prev => [...prev, ...newItemsWithIds]);
     if (supabase) {
       const { error } = await supabase.from('parcelas').upsert(newItemsWithIds);
@@ -274,7 +275,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addOrcamento = (data: Omit<Orcamento, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Orcamento;
+    const newItem = { id, ...data, user_id: user?.id } as Orcamento;
     setOrcamentos(prev => [...prev, newItem]);
     syncUpsert('orcamentos', id, newItem);
   };
@@ -293,7 +294,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addMeta = (data: Omit<Meta, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Meta;
+    const newItem = { id, ...data, user_id: user?.id } as Meta;
     setMetas(prev => [...prev, newItem]);
     syncUpsert('metas', id, newItem);
   };
@@ -312,7 +313,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addDivida = (data: Omit<Divida, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Divida;
+    const newItem = { id, ...data, user_id: user?.id } as Divida;
     setDividas(prev => [...prev, newItem]);
     syncUpsert('dividas', id, newItem);
   };
@@ -331,7 +332,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addInvestimento = (data: Omit<Investimento, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Investimento;
+    const newItem = { id, ...data, user_id: user?.id } as Investimento;
     setInvestimentos(prev => [...prev, newItem]);
     syncUpsert('investimentos', id, newItem);
   };
@@ -350,7 +351,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addConta = (data: Omit<Conta, 'id'>) => {
     const id = generateId();
-    const newItem = { id, ...data } as Conta;
+    const newItem = { id, ...data, user_id: user?.id } as Conta;
     setContas(prev => [...prev, newItem]);
     syncUpsert('contas', id, newItem);
   };
