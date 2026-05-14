@@ -201,9 +201,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           method: payload.method || 'Outros',
           account: payload.account || payload.bank || 'Outros',
           status: payload.status || 'Pendente',
-          category: payload.category || 'Outros',
-          observations: payload.observations || '',
+          // Virtual properties to keep typescript happy if they slip in
         };
+        delete clean.category;
+        delete clean.observations;
+        delete clean.bank;
         break;
       case 'receitas':
         clean = {
@@ -213,9 +215,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           value: Number(payload.value) || 0,
           category: payload.category || 'Outras',
           status: payload.status || 'Previsto',
-          account: payload.account || payload.bank || 'Outros',
-          observations: payload.observations || '',
         };
+        delete clean.account;
+        delete clean.bank;
+        delete clean.observations;
         break;
       case 'parcelas':
         clean = {
@@ -229,9 +232,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           totalInstallments: Number(payload.totalInstallments) || 1,
           status: payload.status || 'Pendente',
           type: payload.type || 'Parcela',
-          seriesId: payload.seriesId || '',
-          observations: payload.observations || '',
         };
+        delete clean.seriesId;
+        delete clean.observations;
+        delete clean.bank;
         break;
       case 'contas':
         clean = {
@@ -271,6 +275,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           paidAmount: Number(payload.paidAmount) || 0,
           interestRate: Number(payload.interestRate) || 0,
         };
+        delete clean.method;
         break;
       case 'investimentos':
         clean = {
