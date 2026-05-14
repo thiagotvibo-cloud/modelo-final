@@ -302,6 +302,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
     
     const payload = sanitizePayload(table, { id, ...data, user_id: user.id });
+    console.log("DEBUG single upsert", table, payload);
 
     const { error } = await supabase.from(table).upsert(payload);
     if (error) {
@@ -416,7 +417,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user.id })) as Parcela[];
     if (supabase) {
       const sanitizedItems = newItemsWithIds.map(item => sanitizePayload('parcelas', item));
+      console.log("DEBUG sanitized parcelas:", sanitizedItems);
       const { error } = await supabase.from('parcelas').upsert(sanitizedItems);
+
       if (error) {
         console.error('Error syncing multiple parcelas:', error);
         alert(`Erro ao salvar parcelas: ${error.message}`);
