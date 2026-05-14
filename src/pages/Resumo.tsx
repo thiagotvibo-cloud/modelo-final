@@ -293,7 +293,7 @@ export function Resumo() {
         <div className="bg-white dark:bg-[#2C2C2E] p-8 rounded-[32px] border border-black/[0.03] dark:border-white/5 shadow-sm mb-8 transition-colors duration-300">
           <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-8">Atividade Semestral</h3>
           <div className="w-full h-64 -ml-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">

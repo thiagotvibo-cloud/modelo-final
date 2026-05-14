@@ -48,7 +48,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       setObservations("");
       setAccountColor("#000000");
     }
-  }, [isOpen, defaultType, contas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -79,6 +80,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         value: numValue,
         date: parsedDate,
         category,
+        account: bank,
         status: isPaid ? 'Recebido' : 'Previsto'
       });
     } else if (type === 'Parcela') {
@@ -165,13 +167,16 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         yield: 0
       });
     } else if (type === 'Conta') {
-      if (!description || isNaN(numValue)) return;
+      if (!description) return;
+      
+      // Construção estrita do payload conforme exigência do backend (Supabase)
+      // O FinanceContext cuidará do mapeamento final, mas garantimos os campos aqui
       addConta({
         name: description,
-        institution: description, // Default to name
-        balance: 0, // Unused
-        type: 'Etiqueta', // Fixed type
-        expectedBalance: 0, // Unused
+        institution: 'Geral', // Fallback obrigatório
+        balance: 0, // Fallback obrigatório
+        type: 'Etiqueta', // Tipo fixo para Etiquetas
+        expectedBalance: 0, // Fallback obrigatório
         color: accountColor
       });
     }
@@ -194,10 +199,10 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
         </div>
 
         <div className="space-y-7 flex-1 overflow-y-auto hide-scrollbar pb-8">
-          {(type === 'Parcela' || type === 'Gasto') && (
+          {(type === 'Parcela' || type === 'Gasto' || type === 'Receita') && (
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Conta de Origem</label>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Conta de Destino / Origem</label>
                 {contas.length > 0 ? (
                   <select 
                     value={bank} 

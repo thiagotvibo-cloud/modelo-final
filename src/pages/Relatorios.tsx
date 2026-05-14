@@ -24,7 +24,7 @@ export function Relatorios() {
         <h3 className="font-bold text-slate-800 mb-6 tracking-tight">Gastos por Método</h3>
         <div className="w-full h-72">
           {data.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={data} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                 <XAxis 

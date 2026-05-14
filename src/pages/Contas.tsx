@@ -1,13 +1,13 @@
-import { Plus, Wallet, Trash2, X, ChevronRight, Calendar, ArrowLeft } from "lucide-react";
+import { Plus, Wallet, Trash2, X, ChevronRight, Calendar, ArrowLeft, TrendingUp, CreditCard as CreditCardIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useFinance, Conta, Parcela, Gasto } from "../contexts/FinanceContext";
+import { useFinance, Conta, Parcela, Gasto, Receita } from "../contexts/FinanceContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDateShort, getColorForAccount } from "../lib/utils";
 
 export function Contas() {
-  const { contas, updateConta, deleteConta, parcelas, gastos } = useFinance();
+  const { contas, updateConta, deleteConta, parcelas, gastos, receitas } = useFinance();
   const [editingItem, setEditingItem] = useState<Conta | null>(null);
   const [viewingLabel, setViewingLabel] = useState<Conta | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -15,8 +15,12 @@ export function Contas() {
   const getAccountItems = (accountName: string) => {
     const installments = parcelas.filter(p => (p.account || p.bank) === accountName);
     const expenses = gastos.filter(g => (g.account || g.bank) === accountName);
-    return [...installments.map(i => ({ ...i, itemType: 'Parcela' })), ...expenses.map(e => ({ ...e, itemType: 'Gasto' }))]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const revenues = receitas.filter(r => (r.account || r.bank) === accountName);
+    return [
+      ...installments.map(i => ({ ...i, itemType: 'Parcela' })), 
+      ...expenses.map(e => ({ ...e, itemType: 'Gasto' })),
+      ...revenues.map(r => ({ ...r, itemType: 'Receita' }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   const getAccountTotal = (accountName: string) => {
@@ -26,7 +30,10 @@ export function Contas() {
     const gastosTotal = gastos
       .filter(g => (g.account || g.bank) === accountName && g.status === 'Pendente')
       .reduce((sum, g) => sum + g.value, 0);
-    return parcelasTotal + gastosTotal;
+    const receitasTotal = receitas
+      .filter(r => (r.account || r.bank) === accountName && r.status === 'Previsto')
+      .reduce((sum, r) => sum + r.value, 0);
+    return (parcelasTotal + gastosTotal) - receitasTotal;
   };
 
   const handleEdit = (conta: Conta) => {
@@ -172,7 +179,9 @@ export function Contas() {
                   <div key={item.id} className="iphone-card p-5 flex justify-between items-center">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400">
-                        {item.itemType === 'Parcela' ? <CreditCard className="w-5 h-5" /> : <Wallet className="w-5 h-5" />}
+                        {item.itemType === 'Parcela' ? <CreditCardIcon className="w-5 h-5" /> : 
+                         item.itemType === 'Receita' ? <TrendingUp className="w-5 h-5 text-green-500" /> :
+                         <Wallet className="w-5 h-5" />}
                       </div>
                       <div>
                         <h4 className="font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">{item.description}</h4>

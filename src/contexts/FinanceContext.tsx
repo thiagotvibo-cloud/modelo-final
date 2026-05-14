@@ -70,6 +70,19 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
     }
   });
 
+  const mapFromDB = (data: any[]) => {
+    if (tableName === 'contas') {
+      return data.map(item => ({
+        ...item,
+        name: item.nome || item.name,
+        type: item.tipo || item.type,
+        balance: Number(item.saldo) || Number(item.balance) || 0,
+        institution: item.instituicao || item.institution || 'Geral',
+      }));
+    }
+    return data;
+  };
+
   useEffect(() => {
     try {
       window.localStorage.setItem(key, JSON.stringify(state));
@@ -95,7 +108,7 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
       if (error) {
         console.error(`Error fetching ${tableName} from Supabase:`, error);
       } else if (data && isSubscribed) {
-        setState(data as any);
+        setState(mapFromDB(data) as any);
         onFetchSuccess?.();
       }
     };
@@ -116,14 +129,16 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
           if (!isSubscribed) return;
 
           setState((prev: any) => {
+            const mappedNew = (tableName === 'contas' && payload.new) ? mapFromDB([payload.new])[0] : payload.new;
+            
             if (Array.isArray(prev)) {
               if (payload.eventType === 'INSERT') {
-                const alreadyExists = prev.some(item => item.id === payload.new.id);
+                const alreadyExists = prev.some(item => item.id === mappedNew.id);
                 if (alreadyExists) return prev;
-                return [...prev, payload.new];
+                return [...prev, mappedNew];
               }
               if (payload.eventType === 'UPDATE') {
-                return prev.map(item => item.id === payload.new.id ? payload.new : item);
+                return prev.map(item => item.id === mappedNew.id ? mappedNew : item);
               }
               if (payload.eventType === 'DELETE') {
                 return prev.filter(item => item.id !== payload.old.id);
@@ -131,7 +146,7 @@ function usePersistentState<T>(key: string, defaultValue: T, tableName: string, 
             } else {
               // Non-array state (like notification_settings)
               if (payload.eventType === 'DELETE') return defaultValue;
-              return payload.new;
+              return mappedNew;
             }
             return prev;
           });
@@ -212,19 +227,26 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           totalInstallments: Number(payload.totalInstallments) || 1,
           status: payload.status || 'Pendente',
           type: payload.type || 'Parcela',
+          seriesId: payload.seriesId || '',
           observations: payload.observations || '',
         };
         break;
       case 'contas':
+        // Mapeamento Estrito para Supabase (conforme Constraint NOT NULL)
         clean = {
           ...clean,
-          name: payload.name || 'Nova Conta',
-          type: payload.type || 'Corrente',
-          balance: Number(payload.balance) || 0,
+          nome: payload.name || payload.nome || 'Nova Conta',
+          tipo: payload.type || payload.tipo || 'Etiqueta',
+          saldo: Number(payload.balance) || Number(payload.saldo) || 0,
           expectedBalance: Number(payload.expectedBalance) || 0,
-          institution: payload.institution || 'Geral',
+          instituicao: payload.institution || payload.instituicao || 'Geral',
           color: payload.color || '#333333',
         };
+        // Remover chaves em inglês que não existem na tabela
+        delete clean.name;
+        delete clean.type;
+        delete clean.balance;
+        delete clean.institution;
         break;
       case 'orcamentos':
         clean = {

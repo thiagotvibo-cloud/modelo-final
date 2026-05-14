@@ -33,7 +33,7 @@ export function ExpenseChart({ transactions }: ExpenseChartProps) {
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col">
       <h3 className="font-bold text-slate-800 mb-6">Despesas por Categoria</h3>
       <div className="flex-1 w-full min-h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <PieChart>
             <Pie
               data={data}
