@@ -155,20 +155,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas', user);
 
   const syncUpsert = async (table: string, id: string, data: any) => {
-    if (supabase) {
-      await supabase.from(table).upsert({ id, ...data });
+    if (supabase && user) {
+      const { error } = await supabase.from(table).upsert({ id, ...data, user_id: user.id });
+      if (error) console.error(`Error syncing upsert to ${table}:`, error);
     }
   };
 
   const syncDelete = async (table: string, id: string) => {
     if (supabase) {
-      await supabase.from(table).delete().eq('id', id);
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) console.error(`Error syncing delete from ${table}:`, error);
     }
   };
 
   const generateId = () => crypto.randomUUID();
 
-  const handleBudgetUpdate = (category: string, amountChange: number) => {
+  const handleBudgetUpdate = async (category: string, amountChange: number) => {
     if (!category) return;
     setOrcamentos(prev => {
       const updated = prev.map(orc => 
@@ -231,11 +233,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     syncUpsert('parcelas', id, newItem);
   };
 
-  const addMultipleParcelas = (items: Omit<Parcela, 'id'>[]) => {
-    const newItemsWithIds = items.map(item => ({ id: generateId(), ...item })) as Parcela[];
+  const addMultipleParcelas = async (items: Omit<Parcela, 'id'>[]) => {
+    const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user?.id })) as Parcela[];
     setParcelas(prev => [...prev, ...newItemsWithIds]);
     if (supabase) {
-      supabase.from('parcelas').upsert(newItemsWithIds);
+      const { error } = await supabase.from('parcelas').upsert(newItemsWithIds);
+      if (error) console.error('Error syncing multiple parcelas:', error);
     }
   };
 

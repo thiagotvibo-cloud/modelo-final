@@ -76,7 +76,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/80 backdrop-blur-sm z-[100] flex flex-col justify-end sm:justify-center items-center">
-      <div className="bg-white dark:bg-[#1F1F1F] w-full max-w-lg rounded-t-[32px] sm:rounded-[32px] p-6 pb-12 sm:pb-8 shadow-2xl relative animate-in slide-in-from-bottom-full duration-300 border border-transparent dark:border-white/10">
+      <div className="bg-white dark:bg-[#1F1F1F] w-full max-w-lg rounded-t-[32px] sm:rounded-[32px] p-6 pb-12 sm:pb-8 shadow-2xl relative animate-in slide-in-from-bottom-full duration-200 border border-transparent dark:border-white/10">
         <div className="w-12 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full mx-auto mb-6 sm:hidden pointer-events-none"></div>
         
         <div className="flex items-center justify-between mb-8">

@@ -181,7 +181,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 z-[100] flex flex-col justify-end sm:justify-center items-center backdrop-blur-md px-0 sm:px-4">
-      <div className="bg-white dark:bg-[#2C2C2E] w-full max-w-lg rounded-t-[42px] sm:rounded-[32px] p-6 sm:p-9 shadow-2xl relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 duration-500 max-h-[94vh] flex flex-col transition-colors duration-300">
+      <div className="bg-white dark:bg-[#2C2C2E] w-full max-w-lg rounded-t-[42px] sm:rounded-[32px] p-6 sm:p-9 shadow-2xl relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 duration-300 max-h-[94vh] flex flex-col transition-colors duration-300">
         <div className="w-12 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full mx-auto mb-8 sm:hidden pointer-events-none"></div>
         
         <div className="flex items-center justify-between mb-10">
