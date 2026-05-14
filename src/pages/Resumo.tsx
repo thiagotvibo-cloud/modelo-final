@@ -251,7 +251,7 @@ export function Resumo() {
           <button 
             onClick={() => navigate('/contas')}
             className="flex flex-col items-center gap-2 p-4 flex-1 hover:bg-slate-50 dark:hover:bg-white/5 transition-all rounded-[24px]">
-            <div className="w-12 h-12 bg-orange-50 dark:bg-orange-500/10 text-orange-500 dark:text-orange-400 rounded-full flex items-center justify-center mb-1">
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 rounded-full flex items-center justify-center mb-1">
               <Wallet className="w-6 h-6 stroke-[2.5]" />
             </div>
             <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">Banco</span>
