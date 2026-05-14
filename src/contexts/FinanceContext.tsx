@@ -21,32 +21,32 @@ export type FinanceContextType = {
   dividas: Divida[];
   investimentos: Investimento[];
   contas: Conta[];
-  addGasto: (data: Omit<Gasto, 'id'>) => void;
-  addReceita: (data: Omit<Receita, 'id'>) => void;
-  addParcela: (data: Omit<Parcela, 'id'>) => void;
-  addMultipleParcelas: (items: Omit<Parcela, 'id'>[]) => void;
-  addOrcamento: (data: Omit<Orcamento, 'id'>) => void;
-  addMeta: (data: Omit<Meta, 'id'>) => void;
-  addDivida: (data: Omit<Divida, 'id'>) => void;
-  addInvestimento: (data: Omit<Investimento, 'id'>) => void;
-  addConta: (data: Omit<Conta, 'id'>) => void;
-  updateGasto: (id: string, data: Partial<Gasto>) => void;
-  updateReceita: (id: string, data: Partial<Receita>) => void;
-  updateParcela: (id: string, data: Partial<Parcela>) => void;
-  updateOrcamento: (id: string, data: Partial<Orcamento>) => void;
-  updateMeta: (id: string, data: Partial<Meta>) => void;
-  updateDivida: (id: string, data: Partial<Divida>) => void;
-  updateInvestimento: (id: string, data: Partial<Investimento>) => void;
-  updateConta: (id: string, data: Partial<Conta>) => void;
-  deleteGasto: (id: string) => void;
-  deleteReceita: (id: string) => void;
-  deleteParcela: (id: string) => void;
-  deleteParcelaSeries: (seriesId: string) => void;
-  deleteOrcamento: (id: string) => void;
-  deleteMeta: (id: string) => void;
-  deleteDivida: (id: string) => void;
-  deleteInvestimento: (id: string) => void;
-  deleteConta: (id: string) => void;
+  addGasto: (data: Omit<Gasto, 'id'>) => Promise<void>;
+  addReceita: (data: Omit<Receita, 'id'>) => Promise<void>;
+  addParcela: (data: Omit<Parcela, 'id'>) => Promise<void>;
+  addMultipleParcelas: (items: Omit<Parcela, 'id'>[]) => Promise<void>;
+  addOrcamento: (data: Omit<Orcamento, 'id'>) => Promise<void>;
+  addMeta: (data: Omit<Meta, 'id'>) => Promise<void>;
+  addDivida: (data: Omit<Divida, 'id'>) => Promise<void>;
+  addInvestimento: (data: Omit<Investimento, 'id'>) => Promise<void>;
+  addConta: (data: Omit<Conta, 'id'>) => Promise<void>;
+  updateGasto: (id: string, data: Partial<Gasto>) => Promise<void>;
+  updateReceita: (id: string, data: Partial<Receita>) => Promise<void>;
+  updateParcela: (id: string, data: Partial<Parcela>) => Promise<void>;
+  updateOrcamento: (id: string, data: Partial<Orcamento>) => Promise<void>;
+  updateMeta: (id: string, data: Partial<Meta>) => Promise<void>;
+  updateDivida: (id: string, data: Partial<Divida>) => Promise<void>;
+  updateInvestimento: (id: string, data: Partial<Investimento>) => Promise<void>;
+  updateConta: (id: string, data: Partial<Conta>) => Promise<void>;
+  deleteGasto: (id: string) => Promise<void>;
+  deleteReceita: (id: string) => Promise<void>;
+  deleteParcela: (id: string) => Promise<void>;
+  deleteParcelaSeries: (seriesId: string) => Promise<void>;
+  deleteOrcamento: (id: string) => Promise<void>;
+  deleteMeta: (id: string) => Promise<void>;
+  deleteDivida: (id: string) => Promise<void>;
+  deleteInvestimento: (id: string) => Promise<void>;
+  deleteConta: (id: string) => Promise<void>;
 };
 
 const defaultGastos: Gasto[] = [];
@@ -160,212 +160,293 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [contas, setContas] = usePersistentState<Conta[]>('financa_contas', defaultContas, 'contas', user);
 
   const syncUpsert = async (table: string, id: string, data: any) => {
-    if (supabase && user) {
-      const { error } = await supabase.from(table).upsert({ id, ...data, user_id: user.id });
-      if (error) console.error(`Error syncing upsert to ${table}:`, error);
+    if (!supabase || !user) {
+      alert("Usuário não autenticado.");
+      return false;
     }
+    const { error } = await supabase.from(table).upsert({ id, ...data, user_id: user.id });
+    if (error) {
+      console.error(`Error syncing upsert to ${table}:`, error);
+      alert(`Erro ao salvar (${table}): ${error.message}`);
+      return false;
+    }
+    return true;
   };
 
   const syncDelete = async (table: string, id: string) => {
-    if (supabase && user) {
-      const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', user.id);
-      if (error) console.error(`Error syncing delete from ${table}:`, error);
+    if (!supabase || !user) {
+      alert("Usuário não autenticado.");
+      return false;
     }
+    const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', user.id);
+    if (error) {
+      console.error(`Error syncing delete from ${table}:`, error);
+      alert(`Erro ao excluir (${table}): ${error.message}`);
+      return false;
+    }
+    return true;
   };
 
   const generateId = () => crypto.randomUUID();
 
   const handleBudgetUpdate = async (category: string, amountChange: number) => {
-    if (!category) return;
-    setOrcamentos(prev => {
-      const updated = prev.map(orc => 
-        orc.category === category ? { ...orc, spent: orc.spent + amountChange } : orc
-      );
-      const updatedOrc = updated.find(c => c.category === category);
-      if (updatedOrc) syncUpsert('orcamentos', updatedOrc.id, updatedOrc);
-      return updated;
-    });
+    if (!category || !user) return;
+    const orc = orcamentos.find(o => o.category === category);
+    if (!orc) return;
+    
+    const updatedOrc = { ...orc, spent: orc.spent + amountChange };
+    const success = await syncUpsert('orcamentos', updatedOrc.id, updatedOrc);
+    if (success) {
+      setOrcamentos(prev => prev.map(o => o.id === updatedOrc.id ? updatedOrc : o));
+    }
   };
 
-  const addGasto = (data: Omit<Gasto, 'id'>) => {
+  const addGasto = async (data: Omit<Gasto, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Gasto;
-    setGastos(prev => [...prev, newItem]);
-    syncUpsert('gastos', id, newItem);
-    // Update budget if possible
-    handleBudgetUpdate((data as any).category, data.value);
+    const success = await syncUpsert('gastos', id, newItem);
+    if (success) {
+      setGastos(prev => [...prev, newItem]);
+      // Update budget if possible
+      handleBudgetUpdate((data as any).category, data.value);
+    }
   };
-  const updateGasto = (id: string, data: Partial<Gasto>) => {
+  const updateGasto = async (id: string, data: Partial<Gasto>) => {
     const item = gastos.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setGastos(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('gastos', id, newItem);
-      
-      if (data.value && data.value !== item.value) {
-        handleBudgetUpdate((item as any).category, data.value - item.value);
+      const success = await syncUpsert('gastos', id, newItem);
+      if (success) {
+        setGastos(prev => prev.map(i => i.id === id ? newItem : i));
+        
+        if (data.value && data.value !== item.value) {
+          handleBudgetUpdate((item as any).category, data.value - item.value);
+        }
       }
     }
   };
-  const deleteGasto = (id: string) => {
+  const deleteGasto = async (id: string) => {
     const item = gastos.find(i => i.id === id);
-    setGastos(prev => prev.filter(i => i.id !== id));
-    syncDelete('gastos', id);
-    if (item) {
+    if (!item) return;
+    const success = await syncDelete('gastos', id);
+    if (success) {
+      setGastos(prev => prev.filter(i => i.id !== id));
       handleBudgetUpdate((item as any).category, -(item.value));
     }
   };
 
-  const addReceita = (data: Omit<Receita, 'id'>) => {
+  const addReceita = async (data: Omit<Receita, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Receita;
-    setReceitas(prev => [...prev, newItem]);
-    syncUpsert('receitas', id, newItem);
+    const success = await syncUpsert('receitas', id, newItem);
+    if (success) {
+      setReceitas(prev => [...prev, newItem]);
+    }
   };
-  const updateReceita = (id: string, data: Partial<Receita>) => {
+  const updateReceita = async (id: string, data: Partial<Receita>) => {
     const item = receitas.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setReceitas(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('receitas', id, newItem);
+      const success = await syncUpsert('receitas', id, newItem);
+      if (success) {
+        setReceitas(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteReceita = (id: string) => {
-    setReceitas(prev => prev.filter(i => i.id !== id));
-    syncDelete('receitas', id);
+  const deleteReceita = async (id: string) => {
+    const success = await syncDelete('receitas', id);
+    if (success) {
+      setReceitas(prev => prev.filter(i => i.id !== id));
+    }
   };
 
-  const addParcela = (data: Omit<Parcela, 'id'>) => {
+  const addParcela = async (data: Omit<Parcela, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Parcela;
-    setParcelas(prev => [...prev, newItem]);
-    syncUpsert('parcelas', id, newItem);
+    const success = await syncUpsert('parcelas', id, newItem);
+    if (success) {
+      setParcelas(prev => [...prev, newItem]);
+    }
   };
 
   const addMultipleParcelas = async (items: Omit<Parcela, 'id'>[]) => {
-    if (!user) return;
+    if (!user) {
+      alert("Usuário não autenticado.");
+      return;
+    }
     const newItemsWithIds = items.map(item => ({ id: generateId(), ...item, user_id: user.id })) as Parcela[];
-    setParcelas(prev => [...prev, ...newItemsWithIds]);
     if (supabase) {
       const { error } = await supabase.from('parcelas').upsert(newItemsWithIds);
-      if (error) console.error('Error syncing multiple parcelas:', error);
+      if (error) {
+        console.error('Error syncing multiple parcelas:', error);
+        alert(`Erro ao salvar parcelas: ${error.message}`);
+      } else {
+        setParcelas(prev => [...prev, ...newItemsWithIds]);
+      }
     }
   };
 
-  const updateParcela = (id: string, data: Partial<Parcela>) => {
+  const updateParcela = async (id: string, data: Partial<Parcela>) => {
     const item = parcelas.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setParcelas(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('parcelas', id, newItem);
+      const success = await syncUpsert('parcelas', id, newItem);
+      if (success) {
+        setParcelas(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteParcela = (id: string) => {
-    setParcelas(prev => prev.filter(i => i.id !== id));
-    syncDelete('parcelas', id);
+  const deleteParcela = async (id: string) => {
+    const success = await syncDelete('parcelas', id);
+    if (success) {
+      setParcelas(prev => prev.filter(i => i.id !== id));
+    }
   };
 
-  const deleteParcelaSeries = (seriesId: string) => {
+  const deleteParcelaSeries = async (seriesId: string) => {
     const toDelete = parcelas.filter(p => p.seriesId === seriesId);
-    setParcelas(prev => prev.filter(p => p.seriesId !== seriesId));
-    if (supabase) {
-      toDelete.forEach(p => syncDelete('parcelas', p.id));
+    if (toDelete.length === 0) return;
+    
+    if (!supabase || !user) {
+      alert("Usuário não autenticado.");
+      return;
+    }
+    
+    // Delete in a single query via eq('seriesId', seriesId), wait.. actually we don't have a seriesId on table directly perhaps, let's look:
+    // We can delete by matching the array of IDs to be safe
+    const ids = toDelete.map(p => p.id);
+    const { error } = await supabase.from('parcelas').delete().in('id', ids).eq('user_id', user.id);
+    if (error) {
+       console.error(`Error syncing delete series from parcelas:`, error);
+       alert(`Erro ao excluir série de parcelas: ${error.message}`);
+    } else {
+       setParcelas(prev => prev.filter(p => p.seriesId !== seriesId));
     }
   };
 
-  const addOrcamento = (data: Omit<Orcamento, 'id'>) => {
+  const addOrcamento = async (data: Omit<Orcamento, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Orcamento;
-    setOrcamentos(prev => [...prev, newItem]);
-    syncUpsert('orcamentos', id, newItem);
+    const success = await syncUpsert('orcamentos', id, newItem);
+    if (success) {
+      setOrcamentos(prev => [...prev, newItem]);
+    }
   };
-  const updateOrcamento = (id: string, data: Partial<Orcamento>) => {
+  const updateOrcamento = async (id: string, data: Partial<Orcamento>) => {
     const item = orcamentos.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setOrcamentos(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('orcamentos', id, newItem);
+      const success = await syncUpsert('orcamentos', id, newItem);
+      if (success) {
+        setOrcamentos(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteOrcamento = (id: string) => {
-    setOrcamentos(prev => prev.filter(i => i.id !== id));
-    syncDelete('orcamentos', id);
+  const deleteOrcamento = async (id: string) => {
+    const success = await syncDelete('orcamentos', id);
+    if (success) {
+      setOrcamentos(prev => prev.filter(i => i.id !== id));
+    }
   };
 
-  const addMeta = (data: Omit<Meta, 'id'>) => {
+  const addMeta = async (data: Omit<Meta, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Meta;
-    setMetas(prev => [...prev, newItem]);
-    syncUpsert('metas', id, newItem);
+    const success = await syncUpsert('metas', id, newItem);
+    if (success) {
+      setMetas(prev => [...prev, newItem]);
+    }
   };
-  const updateMeta = (id: string, data: Partial<Meta>) => {
+  const updateMeta = async (id: string, data: Partial<Meta>) => {
     const item = metas.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setMetas(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('metas', id, newItem);
+      const success = await syncUpsert('metas', id, newItem);
+      if (success) {
+        setMetas(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteMeta = (id: string) => {
-    setMetas(prev => prev.filter(i => i.id !== id));
-    syncDelete('metas', id);
+  const deleteMeta = async (id: string) => {
+    const success = await syncDelete('metas', id);
+    if (success) {
+      setMetas(prev => prev.filter(i => i.id !== id));
+    }
   };
 
-  const addDivida = (data: Omit<Divida, 'id'>) => {
+  const addDivida = async (data: Omit<Divida, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Divida;
-    setDividas(prev => [...prev, newItem]);
-    syncUpsert('dividas', id, newItem);
+    const success = await syncUpsert('dividas', id, newItem);
+    if (success) {
+      setDividas(prev => [...prev, newItem]);
+    }
   };
-  const updateDivida = (id: string, data: Partial<Divida>) => {
+  const updateDivida = async (id: string, data: Partial<Divida>) => {
     const item = dividas.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setDividas(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('dividas', id, newItem);
+      const success = await syncUpsert('dividas', id, newItem);
+      if (success) {
+        setDividas(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteDivida = (id: string) => {
-    setDividas(prev => prev.filter(i => i.id !== id));
-    syncDelete('dividas', id);
+  const deleteDivida = async (id: string) => {
+    const success = await syncDelete('dividas', id);
+    if (success) {
+      setDividas(prev => prev.filter(i => i.id !== id));
+    }
   };
 
-  const addInvestimento = (data: Omit<Investimento, 'id'>) => {
+  const addInvestimento = async (data: Omit<Investimento, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Investimento;
-    setInvestimentos(prev => [...prev, newItem]);
-    syncUpsert('investimentos', id, newItem);
+    const success = await syncUpsert('investimentos', id, newItem);
+    if (success) {
+      setInvestimentos(prev => [...prev, newItem]);
+    }
   };
-  const updateInvestimento = (id: string, data: Partial<Investimento>) => {
+  const updateInvestimento = async (id: string, data: Partial<Investimento>) => {
     const item = investimentos.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setInvestimentos(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('investimentos', id, newItem);
+      const success = await syncUpsert('investimentos', id, newItem);
+      if (success) {
+        setInvestimentos(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteInvestimento = (id: string) => {
-    setInvestimentos(prev => prev.filter(i => i.id !== id));
-    syncDelete('investimentos', id);
+  const deleteInvestimento = async (id: string) => {
+    const success = await syncDelete('investimentos', id);
+    if (success) {
+      setInvestimentos(prev => prev.filter(i => i.id !== id));
+    }
   };
 
-  const addConta = (data: Omit<Conta, 'id'>) => {
+  const addConta = async (data: Omit<Conta, 'id'>) => {
     const id = generateId();
     const newItem = { id, ...data, user_id: user?.id } as Conta;
-    setContas(prev => [...prev, newItem]);
-    syncUpsert('contas', id, newItem);
+    const success = await syncUpsert('contas', id, newItem);
+    if (success) {
+      setContas(prev => [...prev, newItem]);
+    }
   };
-  const updateConta = (id: string, data: Partial<Conta>) => {
+  const updateConta = async (id: string, data: Partial<Conta>) => {
     const item = contas.find(i => i.id === id);
     if (item) {
       const newItem = { ...item, ...data };
-      setContas(prev => prev.map(i => i.id === id ? newItem : i));
-      syncUpsert('contas', id, newItem);
+      const success = await syncUpsert('contas', id, newItem);
+      if (success) {
+        setContas(prev => prev.map(i => i.id === id ? newItem : i));
+      }
     }
   };
-  const deleteConta = (id: string) => {
-    setContas(prev => prev.filter(i => i.id !== id));
-    syncDelete('contas', id);
+  const deleteConta = async (id: string) => {
+    const success = await syncDelete('contas', id);
+    if (success) {
+      setContas(prev => prev.filter(i => i.id !== id));
+    }
   };
 
   return (
