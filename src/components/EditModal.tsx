@@ -89,7 +89,7 @@ export function EditModal({ isOpen, onClose, title, initialData, onSave, onDelet
         <div className="space-y-6">
           <div className="max-h-[60vh] overflow-y-auto space-y-5 pr-1 hide-scrollbar">
               {Object.keys(initialData)
-                .filter(key => !['id', 'type', 'currentInstallment', 'account', 'seriesId'].includes(key))
+                .filter(key => !['id', 'type', 'currentInstallment', 'account', 'seriesId', 'created_at', 'user_id', 'userId', 'createdAt'].includes(key))
                 .map((key) => {
                   const val = formData[key];
                   const isDate = key === 'date' || key === 'deadline';

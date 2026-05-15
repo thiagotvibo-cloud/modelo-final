@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Link, useNavigate } from "react-router-dom";
 import { AddModal } from "../components/AddModal";
 import { motion } from "framer-motion";
+import { getBaseDescription } from "../lib/utils";
 
 export function Resumo() {
   const { gastos, receitas, parcelas, metas, dividas } = useFinance();
@@ -31,9 +32,22 @@ export function Resumo() {
     return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
   };
 
+  // Deduplicate helper for recurring items in the same month
+  const deduplicateMonthSeries = (items: any[]) => {
+    const seen = new Map();
+    return items.filter(item => {
+      if (item.type === 'Assinatura' || item.type === 'Recorrente' || item.description?.toLowerCase().includes('aluguel')) {
+        const key = item.seriesId || getBaseDescription(item.description);
+        if (seen.has(key)) return false;
+        seen.set(key, true);
+      }
+      return true;
+    });
+  };
+
   const currentReceitas = receitas.filter(r => filterByDate(r.date));
   const currentGastos = gastos.filter(g => filterByDate(g.date));
-  const currentParcelas = parcelas.filter(p => filterParcelaByDate(p));
+  const currentParcelas = deduplicateMonthSeries(parcelas.filter(p => filterParcelaByDate(p)));
 
   const totalReceitas = currentReceitas.reduce((a, b) => a + b.value, 0);
   const totalRecebido = currentReceitas.filter(r => r.status === 'Recebido').reduce((a, b) => a + b.value, 0);
@@ -116,10 +130,10 @@ export function Resumo() {
         const gd = getSafeDate(gas.date);
         return gd.getMonth() === m && gd.getFullYear() === y;
       }).reduce((acc, curr) => acc + curr.value, 0) + 
-      parcelas.filter(p => {
+      deduplicateMonthSeries(parcelas.filter(p => {
         const pd = getSafeDate(p.date);
         return pd.getMonth() === m && pd.getFullYear() === y;
-      }).reduce((acc, curr) => acc + curr.value, 0);
+      })).reduce((acc, curr) => acc + curr.value, 0);
 
       data.push({
         name: d.toLocaleDateString('pt-BR', { month: 'short' }),
@@ -195,9 +209,6 @@ export function Resumo() {
               </Link>
             ) : upcomingAmount > 0 ? (
               <Link to="/contas" className="block bg-white/5 backdrop-blur-md rounded-[32px] p-6 border border-white/10 hover:bg-white/10 transition-all text-center group">
-                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10 group-hover:scale-110 transition-transform">
-                  <Calendar className="w-6 h-6 text-white" />
-                </div>
                 <h3 className="text-white/80 font-bold text-[16px] tracking-tight mb-2">Próximos Vencimentos</h3>
                 <p className="text-[36px] font-bold tracking-tighter text-white leading-none mb-3">
                   {upcomingAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

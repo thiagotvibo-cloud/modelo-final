@@ -100,8 +100,21 @@ export function Parcelas() {
 
   const getBankSummary = () => {
     const summary: Record<string, number> = {};
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
     // Only count Pendente installments for the summary
-    parcelas.filter(p => p.status === 'Pendente').forEach(p => {
+    parcelas.filter(p => {
+      if (p.status !== 'Pendente') return false;
+      
+      // For recurring/subscriptions, only count if it's up to the current month in the summary
+      if (p.type === 'Assinatura' || p.type === 'Recorrente' || p.description.toLowerCase().includes('aluguel')) {
+        const itemDate = new Date(p.date.split('T')[0] + 'T12:00:00');
+        return itemDate.getFullYear() < currentYear || (itemDate.getFullYear() === currentYear && itemDate.getMonth() <= currentMonth);
+      }
+      return true;
+    }).forEach(p => {
       const bankKey = p.account || p.bank || 'Não Informado';
       summary[bankKey] = (summary[bankKey] || 0) + p.value;
     });

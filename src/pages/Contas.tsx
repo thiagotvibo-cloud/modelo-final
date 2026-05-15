@@ -4,7 +4,7 @@ import { useFinance, Conta, Parcela, Gasto, Receita } from "../contexts/FinanceC
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDateShort, getColorForAccount } from "../lib/utils";
+import { formatDateShort, getColorForAccount, getBaseDescription } from "../lib/utils";
 
 export function Contas() {
   const { contas, updateConta, deleteConta, parcelas, gastos, receitas } = useFinance();
@@ -16,6 +16,7 @@ export function Contas() {
     const installments = parcelas.filter(p => (p.account || p.bank) === accountName);
     const expenses = gastos.filter(g => (g.account || g.bank) === accountName);
     const revenues = receitas.filter(r => (r.account || r.bank) === accountName);
+    
     return [
       ...installments.map(i => ({ ...i, itemType: 'Parcela' })), 
       ...expenses.map(e => ({ ...e, itemType: 'Gasto' })),
@@ -23,10 +24,145 @@ export function Contas() {
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
+  const [expandedPurchases, setExpandedPurchases] = useState<string[]>([]);
+
+  const togglePurchase = (key: string) => {
+    setExpandedPurchases(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const renderAccountDetails = (accountName: string) => {
+    const allItems = getAccountItems(accountName);
+    const groups: { key: string, items: any[], type: string, description: string }[] = [];
+
+    allItems.forEach(item => {
+      const baseDesc = getBaseDescription(item.description);
+      const key = item.seriesId || baseDesc;
+      
+      const existingGroupIndex = groups.findIndex(g => g.key === key);
+      if (existingGroupIndex > -1) {
+        groups[existingGroupIndex].items.push(item);
+      } else {
+        groups.push({ key, items: [item], type: (item as any).type || (item as any).itemType, description: baseDesc });
+      }
+    });
+
+    if (groups.length === 0) {
+      return (
+        <div className="p-12 text-center">
+          <p className="text-slate-400 font-bold tracking-tight">Nenhum lançamento encontrado</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {groups.map((group) => {
+          const isExpanded = expandedPurchases.includes(group.key);
+          const isMulti = group.items.length > 1;
+          const firstItem = group.items[0];
+          const totalValue = group.items.reduce((acc, curr) => acc + curr.value, 0);
+          const pendingCount = group.items.filter(i => i.status === 'Pendente' || i.status === 'Previsto').length;
+
+          return (
+            <div key={group.key} className="iphone-card overflow-hidden">
+              <div 
+                className={`p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all ${isExpanded ? 'border-b border-slate-100 dark:border-white/5' : ''}`}
+                onClick={() => isMulti && togglePurchase(group.key)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400">
+                    {group.type === 'Parcela' ? <CreditCardIcon className="w-5 h-5" /> : 
+                     group.type === 'Receita' ? <TrendingUp className="w-5 h-5 text-green-500" /> :
+                     <Wallet className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-white text-[16px] tracking-tight flex items-center gap-2">
+                      {group.description}
+                      {isMulti && (
+                        <span className="text-[10px] bg-slate-100 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-black">
+                          {group.items.length} itens
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                      {isMulti ? `${pendingCount} pendentes` : formatDateShort(firstItem.date)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className={`font-bold text-[16px] ${group.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
+                      {isMulti ? totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : firstItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                    {isMulti && <p className="text-[9px] text-slate-300 uppercase font-black tracking-widest">Total Acumulado</p>}
+                  </div>
+                  {isMulti && (
+                    <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                  )}
+                </div>
+              </div>
+
+              {isMulti && isExpanded && (
+                <div className="bg-slate-50/50 dark:bg-black/10 p-2 space-y-2">
+                  {[...group.items].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((subItem) => (
+                    <div key={subItem.id} className="p-3 px-4 flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${subItem.status === 'Pago' || subItem.status === 'Recebido' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <div>
+                          <p className="font-bold text-slate-700 dark:text-slate-300">{subItem.description}</p>
+                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{formatDateShort(subItem.date)}</p>
+                        </div>
+                      </div>
+                      <p className={`font-black ${subItem.itemType === 'Receita' ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`}>
+                        {subItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const getAccountTotal = (accountName: string) => {
-    const parcelasTotal = parcelas
-      .filter(p => (p.account || p.bank) === accountName && p.status === 'Pendente')
-      .reduce((sum, p) => sum + p.value, 0);
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    // Group parcelas by series to deduplicate recurring items
+    const pendingParcelas = parcelas.filter(p => (p.account || p.bank) === accountName && p.status === 'Pendente');
+    const seenRecurring = new Set();
+    
+    const parcelasTotal = pendingParcelas.reduce((sum, p) => {
+      const itemDate = new Date(p.date.split('T')[0] + 'T12:00:00');
+      const isFuture = itemDate.getFullYear() > currentYear || (itemDate.getFullYear() === currentYear && itemDate.getMonth() > currentMonth);
+      
+      if (p.type === 'Assinatura' || p.type === 'Recorrente' || p.description.toLowerCase().includes('aluguel')) {
+        // For recurring items, we only count the one for the CURRENT month in the "Total em Aberto"
+        // to satisfy the "not accumulated" requirement.
+        const key = p.seriesId || getBaseDescription(p.description);
+        
+        // Only count if it's the current month OR if we haven't seen this series yet 
+        // (but user said never accumulate, so we strictly only count ONE instance total)
+        if (seenRecurring.has(key)) return sum;
+        
+        // If it's a future recurring item, we skip it for the "Total em Aberto" summary
+        if (isFuture) return sum;
+        
+        // Only count if it's within the month we are looking at (or past)
+        seenRecurring.add(key);
+        return sum + p.value;
+      }
+      
+      // For fixed installments (Parcela), we sum all pending ones (actual debt)
+      return sum + p.value;
+    }, 0);
+
     const gastosTotal = gastos
       .filter(g => (g.account || g.bank) === accountName && g.status === 'Pendente')
       .reduce((sum, g) => sum + g.value, 0);
@@ -172,36 +308,8 @@ export function Contas() {
                 <p className="text-sm text-slate-400 font-medium">Lançamentos vinculados à etiqueta</p>
               </div>
             </div>
-
             <div className="space-y-3">
-              {getAccountItems(viewingLabel.name).length > 0 ? (
-                getAccountItems(viewingLabel.name).map((item: any, idx) => (
-                  <div key={item.id} className="iphone-card p-5 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400">
-                        {item.itemType === 'Parcela' ? <CreditCardIcon className="w-5 h-5" /> : 
-                         item.itemType === 'Receita' ? <TrendingUp className="w-5 h-5 text-green-500" /> :
-                         <Wallet className="w-5 h-5" />}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">{item.description}</h4>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{formatDateShort(item.date)}</span>
-                          <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-white/10"></span>
-                          <span className={`${item.status === 'Pago' || item.status === 'Recebido' ? 'text-green-500' : 'text-slate-400'} text-[10px] font-black uppercase tracking-widest`}>{item.status}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <p className={`font-bold text-[16px] ${item.itemType === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
-                      {item.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="p-12 text-center">
-                  <p className="text-slate-400 font-bold tracking-tight">Nenhum lançamento encontrado</p>
-                </div>
-              )}
+              {renderAccountDetails(viewingLabel.name)}
             </div>
           </motion.div>
         )}

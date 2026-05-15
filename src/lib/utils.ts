@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const getBaseDescription = (desc: string) => {
+  if (!desc) return '';
+  return desc.replace(/\s*\(\d+\s*[\/\-]\s*\d+\)$/, '').trim();
+};
+
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

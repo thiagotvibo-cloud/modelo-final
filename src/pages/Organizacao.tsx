@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useFinance, Gasto, Parcela } from '../contexts/FinanceContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar, Wallet, Check, AlertCircle, Info } from 'lucide-react';
-import { getColorForAccount } from '../lib/utils';
+import { getColorForAccount, getBaseDescription } from '../lib/utils';
 
 export function Organizacao() {
   const { gastos, parcelas, contas } = useFinance();
@@ -92,10 +92,24 @@ export function Organizacao() {
 
   const uniqueParcelas = new Map();
   projectedParcelas.forEach(p => {
-    // If it's a Parcela already in DB, p.id is unique.
-    // If it's projected, p.id is the ID of the source item.
-    const key = p.seriesId ? `${p.seriesId}-${p.displayInstallment}` : `${p.id}-${p.displayInstallment}`;
-    if (!uniqueParcelas.has(key) || p.isExact) {
+    // For fixed installments (Parcela), we want to see each specific installment (1/10, 2/10 etc)
+    // For recurring items (Assinatura/Recorrente), we only want ONE entry per month total for that series/description.
+    
+    let key = "";
+    if (p.type === 'Parcela') {
+      key = p.seriesId ? `${p.seriesId}-${p.displayInstallment}` : `${p.id}-${p.displayInstallment}`;
+    } else {
+      // Recurring: group by seriesId or normalized description to avoid duplicates in the same month
+      key = p.seriesId || getBaseDescription(p.description);
+    }
+    
+    const existing = uniqueParcelas.get(key);
+    
+    // Priority: 
+    // 1. Exact match (entry exists in DB for this month)
+    // 2. Paid status
+    // 3. Most recent ID (if multiple)
+    if (!existing || (p.isExact && !existing.isExact) || (p.status === 'Pago' && existing.status !== 'Pago')) {
       uniqueParcelas.set(key, p);
     }
   });
@@ -129,18 +143,13 @@ export function Organizacao() {
   const totalInicio = inicioMes.reduce((acc, item) => acc + item.value, 0);
   const totalFinal = finalMes.reduce((acc, item) => acc + item.value, 0);
 
-  const [expandedGroup, setExpandedGroup] = useState<'inicio' | 'final' | null>('inicio');
+  const [expandedGroup, setExpandedGroup] = useState<'inicio' | 'final' | null>(null);
   const [expandedPurchases, setExpandedPurchases] = useState<string[]>([]);
 
   const togglePurchase = (key: string) => {
     setExpandedPurchases(prev => 
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
     );
-  };
-
-  const getBaseDescription = (desc: string) => {
-    // Remove tags like (1/10) or (1 / 10)
-    return desc.replace(/\s*\(\d+\s*[\/\-]\s*\d+\)$/, '').trim();
   };
 
   const renderGroup = (title: string, items: typeof currentMonthItems, total: number, period: 'inicio' | 'final', subtitle: string) => {
@@ -303,9 +312,6 @@ export function Organizacao() {
         <div>
           <h1 className="text-[28px] font-bold text-slate-900 dark:text-white tracking-tight">Organização</h1>
           <p className="text-sm text-slate-400 font-medium tracking-tight">Períodos de pagamento</p>
-        </div>
-        <div className="w-12 h-12 bg-white dark:bg-[#2C2C2E] border border-black/[0.03] dark:border-white/5 rounded-2xl flex items-center justify-center shadow-lg">
-           <Calendar className="w-6 h-6 text-slate-400" />
         </div>
       </div>
 

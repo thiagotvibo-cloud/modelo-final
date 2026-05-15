@@ -117,28 +117,21 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
           });
         }
       } else {
-        // For Assinatura/Recorrente, generate 12 months for tracking
-        for (let i = 0; i < 12; i++) {
-          const installmentDate = new Date(Date.UTC(
-            baseDate.getUTCFullYear(), 
-            baseDate.getUTCMonth() + i, 
-            baseDate.getUTCDate(), 
-            12, 0, 0
-          ));
-          items.push({
-            description,
-            value: numValue,
-            date: installmentDate.toISOString(),
-            method,
-            currentInstallment: 1,
-            totalInstallments: 1,
-            status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
-            type: parcelaType,
-            seriesId,
-            bank,
-            observations
-          });
-        }
+        // For Assinatura/Recorrente, generate only ONE record. 
+        // The Organizacao page will handle projecting it to future months.
+        items.push({
+          description,
+          value: numValue,
+          date: baseDate.toISOString(),
+          method,
+          currentInstallment: 1,
+          totalInstallments: 1,
+          status: isPaid ? 'Pago' : 'Pendente',
+          type: parcelaType,
+          seriesId,
+          bank,
+          observations
+        });
       }
       
       if (items.length > 0) {
