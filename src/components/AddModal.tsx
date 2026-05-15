@@ -7,9 +7,10 @@ type AddModalProps = {
   isOpen: boolean;
   onClose: () => void;
   defaultType?: 'Gasto' | 'Receita' | 'Parcela' | 'Dívida' | 'Meta' | 'Orcamento' | 'Investimento' | 'Conta';
+  defaultParcelaType?: 'Parcela' | 'Assinatura' | 'Recorrente';
 };
 
-export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalProps) {
+export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcelaType = 'Parcela' }: AddModalProps) {
   const { addGasto, addReceita, addParcela, addMultipleParcelas, addDivida, addMeta, addOrcamento, addInvestimento, addConta, contas } = useFinance();
   
   const [description, setDescription] = useState("");
@@ -25,7 +26,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
   const [limit, setLimit] = useState("");
 
   const [totalInstallments, setTotalInstallments] = useState("1");
-  const [parcelaType, setParcelaType] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>('Parcela');
+  const [parcelaType, setParcelaType] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>(defaultParcelaType);
   const [bank, setBank] = useState("");
   const [observations, setObservations] = useState("");
   const [accountColor, setAccountColor] = useState("#000000");
@@ -43,7 +44,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto' }: AddModalPro
       setTarget("");
       setDeadline("");
       setLimit("");
-      setParcelaType(defaultType === 'Parcela' ? 'Parcela' : 'Parcela');
+      setParcelaType(defaultType === 'Parcela' ? defaultParcelaType : 'Parcela');
       setBank(contas.length > 0 ? contas[0].name : "");
       setObservations("");
       setAccountColor("#000000");

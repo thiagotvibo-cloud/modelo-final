@@ -385,6 +385,7 @@ export function Parcelas() {
         isOpen={isAdding}
         onClose={() => setIsAdding(false)}
         defaultType="Parcela"
+        defaultParcelaType={activeTab}
       />
     </div>
   );
