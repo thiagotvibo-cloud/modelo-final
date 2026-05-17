@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatDateShort, getColorForAccount, getBaseDescription } from "../lib/utils";
 
 export function Contas() {
-  const { contas, updateConta, deleteConta, parcelas, gastos, receitas } = useFinance();
-  const [editingItem, setEditingItem] = useState<Conta | null>(null);
+  const { contas, updateConta, deleteConta, parcelas, gastos, receitas, updateParcela, deleteParcela, deleteParcelaSeries, updateGasto, deleteGasto, updateReceita, deleteReceita, deleteMultipleItems } = useFinance();
+  const [editingConta, setEditingConta] = useState<Conta | null>(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
   const [viewingLabel, setViewingLabel] = useState<Conta | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -30,6 +31,16 @@ export function Contas() {
     setExpandedPurchases(prev => 
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
     );
+  };
+
+  const handleDeleteGroup = (e: any, group: any) => {
+    e.stopPropagation();
+    const msg = group.items.length > 1 
+      ? `Tem certeza que deseja apagar todos os ${group.items.length} itens de "${group.description}"?`
+      : `Tem certeza que deseja apagar "${group.description}"?`;
+    if (window.confirm(msg)) {
+       deleteMultipleItems(group.items.map((i: any) => ({ id: i.id, type: i.itemType })));
+    }
   };
 
   const renderAccountDetails = (accountName: string) => {
@@ -69,7 +80,7 @@ export function Contas() {
             <div key={group.key} className="iphone-card overflow-hidden">
               <div 
                 className={`p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all ${isExpanded ? 'border-b border-slate-100 dark:border-white/5' : ''}`}
-                onClick={() => isMulti && togglePurchase(group.key)}
+                onClick={() => isMulti ? togglePurchase(group.key) : handleEditItem(firstItem)}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400">
@@ -78,46 +89,72 @@ export function Contas() {
                      <Wallet className="w-5 h-5" />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white text-[16px] tracking-tight flex items-center gap-2">
-                      {group.description}
+                    <h4 className="font-bold text-slate-900 dark:text-white text-[16px] tracking-tight flex items-center gap-2 flex-wrap">
+                      <span className="truncate max-w-[120px]">{group.description}</span>
                       {isMulti && (
-                        <span className="text-[10px] bg-slate-100 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-black">
-                          {group.items.length} itens
+                        <span className="text-[10px] bg-slate-100 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-black shrink-0">
+                          {group.items.length} {firstItem.type === 'Assinatura' || firstItem.type === 'Recorrente' ? 'meses' : 'itens'}
                         </span>
                       )}
                     </h4>
-                    <p className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                    <p className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest mt-0.5 shrink-0">
                       {isMulti ? `${pendingCount} pendentes` : formatDateShort(firstItem.date)}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right">
-                    <p className={`font-bold text-[16px] ${group.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
-                      {isMulti ? totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : firstItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    <p className={`font-bold text-[16px] whitespace-nowrap ${group.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
+                      {(isMulti && group.type === 'Parcela') ? totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : firstItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
-                    {isMulti && <p className="text-[9px] text-slate-300 uppercase font-black tracking-widest">Total Acumulado</p>}
+                    {isMulti && group.type === 'Parcela' && <p className="text-[9px] text-slate-300 uppercase font-black tracking-widest whitespace-nowrap">Total Compra</p>}
+                    {isMulti && (group.type === 'Assinatura' || group.type === 'Recorrente') && <p className="text-[9px] text-slate-300 uppercase font-black tracking-widest whitespace-nowrap">Valor Mensal</p>}
                   </div>
-                  {isMulti && (
-                    <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      onClick={(e) => handleDeleteGroup(e, group)}
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    {isMulti && (
+                      <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    )}
+                  </div>
                 </div>
               </div>
 
               {isMulti && isExpanded && (
                 <div className="bg-slate-50/50 dark:bg-black/10 p-2 space-y-2">
                   {[...group.items].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((subItem) => (
-                    <div key={subItem.id} className="p-3 px-4 flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${subItem.status === 'Pago' || subItem.status === 'Recebido' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        <div>
-                          <p className="font-bold text-slate-700 dark:text-slate-300">{subItem.description}</p>
+                    <div 
+                      key={subItem.id} 
+                      className="p-3 px-4 flex justify-between items-center text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                      onClick={() => handleEditItem(subItem)}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${subItem.status === 'Pago' || subItem.status === 'Recebido' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-700 dark:text-slate-300 truncate">{subItem.description}</p>
                           <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{formatDateShort(subItem.date)}</p>
                         </div>
                       </div>
-                      <p className={`font-black ${subItem.itemType === 'Receita' ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`}>
-                        {subItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </p>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <p className={`font-black ${subItem.itemType === 'Receita' ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`}>
+                          {subItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </p>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Tem certeza que deseja apagar "${subItem.description}"?`)) {
+                               deleteMultipleItems([{ id: subItem.id, type: subItem.itemType }]);
+                            }
+                          }}
+                          className="p-1.5 text-slate-300 hover:text-red-500 rounded-full transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -134,32 +171,25 @@ export function Contas() {
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
-    // Group parcelas by series to deduplicate recurring items
-    const pendingParcelas = parcelas.filter(p => (p.account || p.bank) === accountName && p.status === 'Pendente');
+    // Sort so we hit the earliest pending item first
+    const pendingParcelas = parcelas
+      .filter(p => (p.account || p.bank) === accountName && p.status === 'Pendente')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
     const seenRecurring = new Set();
     
     const parcelasTotal = pendingParcelas.reduce((sum, p) => {
-      const itemDate = new Date(p.date.split('T')[0] + 'T12:00:00');
-      const isFuture = itemDate.getFullYear() > currentYear || (itemDate.getFullYear() === currentYear && itemDate.getMonth() > currentMonth);
-      
       if (p.type === 'Assinatura' || p.type === 'Recorrente' || p.description.toLowerCase().includes('aluguel')) {
-        // For recurring items, we only count the one for the CURRENT month in the "Total em Aberto"
-        // to satisfy the "not accumulated" requirement.
         const key = p.seriesId || getBaseDescription(p.description);
         
-        // Only count if it's the current month OR if we haven't seen this series yet 
-        // (but user said never accumulate, so we strictly only count ONE instance total)
+        // Count exactly the first (earliest) pending instance, whether current or future
         if (seenRecurring.has(key)) return sum;
         
-        // If it's a future recurring item, we skip it for the "Total em Aberto" summary
-        if (isFuture) return sum;
-        
-        // Only count if it's within the month we are looking at (or past)
         seenRecurring.add(key);
         return sum + p.value;
       }
       
-      // For fixed installments (Parcela), we sum all pending ones (actual debt)
+      // For fixed installments (Parcela), we sum all pending ones
       return sum + p.value;
     }, 0);
 
@@ -172,13 +202,46 @@ export function Contas() {
     return (parcelasTotal + gastosTotal) - receitasTotal;
   };
 
-  const handleEdit = (conta: Conta) => {
-    setEditingItem(conta);
+  const handleEditConta = (conta: Conta) => {
+    setEditingConta(conta);
   };
 
-  const handleSaveEdit = (data: Partial<Conta>) => {
+  const handleSaveConta = (data: Partial<Conta>) => {
+    if (editingConta) {
+      updateConta(editingConta.id, data);
+    }
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingItem(item);
+  };
+
+  const handleSaveItem = (data: any) => {
     if (editingItem) {
-      updateConta(editingItem.id, data);
+      if (editingItem.itemType === 'Gasto') updateGasto(editingItem.id, data);
+      else if (editingItem.itemType === 'Receita') updateReceita(editingItem.id, data);
+      else updateParcela(editingItem.id, data);
+    }
+  };
+
+  const handleDeleteItem = () => {
+    if (editingItem) {
+      if (editingItem.itemType === 'Gasto') deleteGasto(editingItem.id);
+      else if (editingItem.itemType === 'Receita') deleteReceita(editingItem.id);
+      else deleteParcela(editingItem.id);
+      setEditingItem(null);
+    }
+  };
+
+  const handleDeleteSeries = () => {
+    if (editingItem?.itemType === 'Parcela') {
+      const key = editingItem.seriesId || editingItem.description.split(' (')[0];
+      if (editingItem.seriesId) {
+        deleteParcelaSeries(editingItem.seriesId);
+      } else {
+        parcelas.filter(p => p.description.startsWith(key)).forEach(p => deleteParcela(p.id));
+      }
+      setEditingItem(null);
     }
   };
 
@@ -190,7 +253,7 @@ export function Contas() {
     isLongPress.current = false;
     timerRef.current = setTimeout(() => {
       isLongPress.current = true;
-      handleEdit(conta);
+      handleEditConta(conta);
     }, 600); // 600ms for long press
   };
 
@@ -316,12 +379,22 @@ export function Contas() {
       </AnimatePresence>
 
       <EditModal 
+        isOpen={!!editingConta}
+        onClose={() => setEditingConta(null)}
+        title="Editar Etiqueta"
+        initialData={editingConta || {}}
+        onSave={handleSaveConta}
+        onDelete={() => { if(editingConta) deleteConta(editingConta.id); setEditingConta(null) }}
+      />
+
+      <EditModal 
         isOpen={!!editingItem}
         onClose={() => setEditingItem(null)}
-        title="Editar Etiqueta"
+        title={editingItem?.itemType === 'Gasto' ? 'Editar Gasto' : editingItem?.itemType === 'Receita' ? 'Editar Receita' : 'Editar Parcela'}
         initialData={editingItem || {}}
-        onSave={handleSaveEdit}
-        onDelete={() => { if(editingItem) deleteConta(editingItem.id) }}
+        onSave={handleSaveItem}
+        onDelete={handleDeleteItem}
+        onDeleteSeries={editingItem?.itemType === 'Parcela' ? handleDeleteSeries : undefined}
       />
 
       <AddModal 

@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import { useFinance, Gasto, Parcela } from '../contexts/FinanceContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Calendar, Wallet, Check, AlertCircle, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Wallet, Check, AlertCircle, Info, Trash2 } from 'lucide-react';
 import { getColorForAccount, getBaseDescription } from '../lib/utils';
 
 export function Organizacao() {
-  const { gastos, parcelas, contas } = useFinance();
+  const { gastos, parcelas, contas, deleteMultipleItems, deleteParcela, deleteGasto } = useFinance();
+
+  const handleDeleteGroup = (e: any, group: any) => {
+    e.stopPropagation();
+    const msg = group.items.length > 1 
+      ? `Tem certeza que deseja apagar todos os ${group.items.length} itens de "${group.description}"?`
+      : `Tem certeza que deseja apagar "${group.description}"?`;
+    if (window.confirm(msg)) {
+       deleteMultipleItems(group.items.map((i: any) => ({ id: i.id, type: i.type })));
+    }
+  };
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -219,21 +229,21 @@ export function Organizacao() {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1 pr-4">
-                          <div className="flex items-center gap-2 mb-1.5 font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">
-                            {group.description}
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5 font-bold text-slate-900 dark:text-white text-[16px] tracking-tight">
+                            <span className="truncate max-w-[200px]">{group.description}</span>
                             {isMulti && (
-                              <span className="text-[10px] bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-lg uppercase tracking-widest font-black">
+                              <span className="text-[10px] bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-lg uppercase tracking-widest font-black shrink-0">
                                 {group.items.length} itens
                               </span>
                             )}
                             {!isMulti && firstItem.parcelaInfo && (
-                              <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">
+                              <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest shrink-0">
                                 {firstItem.parcelaInfo}
                               </span>
                             )}
                           </div>
                           
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md uppercase tracking-wider">
                               {isMulti ? 'Vários vencimentos' : `Venc: ${new Date(firstItem.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`}
                             </span>
@@ -250,14 +260,24 @@ export function Organizacao() {
                             </span>
                           </div>
                         </div>
-                        <p className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight shrink-0 mt-0.5 text-right">
-                          {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          {isMulti && (
-                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                              {isExpanded ? 'Recolher' : 'Ver Detalhes'}
-                            </span>
-                          )}
-                        </p>
+                        <div className="flex flex-col items-end shrink-0 text-right mt-0.5">
+                          <p className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight">
+                            {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1 justify-end">
+                            <button 
+                              onClick={(e) => handleDeleteGroup(e, group)}
+                              className="p-1.5 text-slate-300 hover:text-red-500 rounded-full transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            {isMulti && (
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                {isExpanded ? 'Recolher' : 'Ver Detalhes'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -283,9 +303,22 @@ export function Organizacao() {
                                     </p>
                                   </div>
                                 </div>
-                                <p className="text-sm font-black text-slate-900 dark:text-white">
-                                  {subItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                </p>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <p className="text-sm font-black text-slate-900 dark:text-white">
+                                    {subItem.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                  </p>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (window.confirm(`Tem certeza que deseja apagar "${subItem.description}"?`)) {
+                                         deleteMultipleItems([{ id: subItem.id, type: subItem.type }]);
+                                      }
+                                    }}
+                                    className="p-1.5 text-slate-300 hover:text-red-500 rounded-full transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

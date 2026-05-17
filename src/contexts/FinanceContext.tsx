@@ -43,6 +43,7 @@ export type FinanceContextType = {
   deleteReceita: (id: string) => Promise<void>;
   deleteParcela: (id: string) => Promise<void>;
   deleteParcelaSeries: (seriesId: string) => Promise<void>;
+  deleteMultipleItems: (items: {id: string, type: string}[]) => Promise<void>;
   deleteOrcamento: (id: string) => Promise<void>;
   deleteMeta: (id: string) => Promise<void>;
   deleteDivida: (id: string) => Promise<void>;
@@ -440,12 +441,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteMultipleItems = async (items: {id: string, type: string}[]) => {
+    const parcelasIds = items.filter(i => i.type === 'Parcela').map(i => i.id);
+    const gastosIds = items.filter(i => i.type === 'Gasto').map(i => i.id);
+    const receitasIds = items.filter(i => i.type === 'Receita').map(i => i.id);
+
+    // Optmistic Update
+    if (parcelasIds.length > 0) {
+      setParcelas(prev => prev.filter(p => !parcelasIds.includes(p.id)));
+    }
+    if (gastosIds.length > 0) {
+      setGastos(prev => prev.filter(p => !gastosIds.includes(p.id)));
+    }
+    if (receitasIds.length > 0) {
+      setReceitas(prev => prev.filter(p => !receitasIds.includes(p.id)));
+    }
+
+    if (!supabase || !user) return;
+
+    try {
+      if (parcelasIds.length > 0) {
+        await supabase.from('parcelas').delete().in('id', parcelasIds).eq('user_id', user.id);
+      }
+      if (gastosIds.length > 0) {
+        await supabase.from('gastos').delete().in('id', gastosIds).eq('user_id', user.id);
+      }
+      if (receitasIds.length > 0) {
+        await supabase.from('receitas').delete().in('id', receitasIds).eq('user_id', user.id);
+      }
+    } catch (e) {
+      console.error("Error bulk deleting items", e);
+    }
+  };
+
   const deleteParcelaSeries = async (seriesId: string) => {
     const toDelete = parcelas.filter(p => p.seriesId === seriesId);
     if (toDelete.length === 0) return;
     
+    // Optimistic UI
+    setParcelas(prev => prev.filter(p => p.seriesId !== seriesId));
+    
     if (!supabase || !user) {
-      alert("Usuário não autenticado.");
       return;
     }
     
@@ -456,8 +492,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (error) {
        console.error(`Error syncing delete series from parcelas:`, error);
        alert(`Erro ao excluir série de parcelas: ${error.message}`);
-    } else {
-       setParcelas(prev => prev.filter(p => p.seriesId !== seriesId));
     }
   };
 
@@ -590,7 +624,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     <FinanceContext.Provider value={{ 
       gastos, receitas, parcelas, orcamentos, metas, dividas, investimentos, contas, lastSync,
       addGasto, addReceita, addParcela, addMultipleParcelas, addOrcamento, addMeta, addDivida, addInvestimento, addConta,
-      updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela, deleteParcelaSeries,
+      updateGasto, deleteGasto, updateReceita, deleteReceita, updateParcela, deleteParcela, deleteParcelaSeries, deleteMultipleItems,
       updateOrcamento, deleteOrcamento, updateMeta, deleteMeta, updateDivida, deleteDivida, updateInvestimento, deleteInvestimento,
       updateConta, deleteConta
     }}>

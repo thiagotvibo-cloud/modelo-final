@@ -7,7 +7,7 @@ import { formatDateShort, getColorForAccount } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Parcelas() {
-  const { parcelas, updateParcela, deleteParcela, deleteParcelaSeries, contas } = useFinance();
+  const { parcelas, updateParcela, deleteParcela, deleteParcelaSeries, contas, deleteMultipleItems } = useFinance();
   const [editingItem, setEditingItem] = useState<Parcela | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -16,19 +16,15 @@ export function Parcelas() {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const getSafeDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
     const datePart = dateStr.split('T')[0];
-    const [y, m, d] = datePart.split('-');
-    return new Date(Number(y), Number(m) - 1, Number(d), 12, 0, 0);
+    const [y, m, d] = datePart.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0);
   };
 
-  const filterByDate = (p: Parcela) => {
-    const d = getSafeDate(p.date);
-    return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
-  };
-
-  const filterByLabel = (p: Parcela) => {
+  const filterByLabel = (labelKey: string) => {
     if (selectedLabels.length === 0) return true;
-    return selectedLabels.includes(p.account || p.bank || '');
+    return selectedLabels.includes(labelKey || '');
   };
 
   const changeMonth = (offset: number) => {
@@ -40,7 +36,65 @@ export function Parcelas() {
   const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-  const currentParcelas = parcelas.filter(p => filterByDate(p) && filterByLabel(p));
+  // Generate projected parcelas for the current month view
+  const getProjectedParcelas = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const projected: any[] = [];
+    
+    parcelas.forEach(p => {
+      const d = getSafeDate(p.date);
+      const rowYear = d.getFullYear();
+      const rowMonth = d.getMonth();
+      const monthsDiff = (year - rowYear) * 12 + (month - rowMonth);
+
+      if (monthsDiff === 0) {
+        projected.push({
+          ...p,
+          displayDate: p.date,
+          isExact: true
+        });
+      } else if (monthsDiff > 0) {
+        let shouldProject = false;
+        if (p.type === 'Assinatura' || p.type === 'Recorrente') {
+          shouldProject = true;
+        }
+
+        if (shouldProject) {
+          const projD = new Date(d);
+          projD.setMonth(d.getMonth() + monthsDiff);
+          projected.push({
+            ...p,
+            displayDate: projD.toISOString(),
+            status: 'Pendente',
+            isExact: false
+          });
+        }
+      }
+    });
+
+    const uniqueParcelas = new Map();
+    projected.forEach(p => {
+      let key = "";
+      if (p.type === 'Parcela') {
+        key = p.seriesId ? `${p.seriesId}-${p.currentInstallment}` : `${p.id}-${p.currentInstallment}`;
+      } else {
+        key = p.seriesId || p.description.split(' (')[0];
+      }
+      
+      const existing = uniqueParcelas.get(key);
+      if (!existing || (p.isExact && !existing.isExact) || (p.status === 'Pago' && existing.status !== 'Pago')) {
+        uniqueParcelas.set(key, p);
+      }
+    });
+
+    return Array.from(uniqueParcelas.values()).map(p => ({
+      ...p,
+      date: p.displayDate // swap date so it renders in the correct month
+    }));
+  };
+
+  const currentParcelas = getProjectedParcelas().filter(p => filterByLabel(p.account || p.bank || ''));
 
   const handleEdit = (parcela: Parcela) => {
     setEditingItem(parcela);
@@ -282,27 +336,27 @@ export function Parcelas() {
                  className={`iphone-card p-6 cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${isPago && parcela.currentInstallment === parcela.totalInstallments && !isRecorrente && viewMode === 'monthly' ? 'opacity-40 grayscale' : ''} ${parcela.isCompleted && viewMode === 'series' ? 'opacity-40 grayscale' : ''}`}
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex-1 pr-4">
-                    <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2 flex items-center gap-2">
-                      {displayTitle}
+                  <div className="flex-1 pr-4 min-w-0">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-[17px] tracking-tight mb-2 flex flex-wrap items-center gap-2">
+                      <span className="truncate">{displayTitle}</span>
                       {(parcela.account || parcela.bank) && (
                         <span 
-                          className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest"
+                          className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest shrink-0"
                           style={{ backgroundColor: contas.find(c => c.name === (parcela.account || parcela.bank))?.color || '#333333' }}
                         >
                           {parcela.account || parcela.bank}
                         </span>
                       )}
                     </h3>
-                    <div className="flex items-center gap-3">
-                      <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{formattedDate}</span>
-                      <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">{parcela.method}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider whitespace-nowrap">{formattedDate}</span>
+                      <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2.5 py-1.5 rounded-lg uppercase tracking-wider whitespace-nowrap">{parcela.method}</span>
                     </div>
                     {parcela.observations && (
                       <p className="mt-3 text-[12px] text-slate-400 italic font-medium leading-tight">“{parcela.observations}”</p>
                     )}
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     <p className="font-bold text-red-500 text-[18px] tracking-tight">
                       {viewMode === 'monthly' ? parcela.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
@@ -334,18 +388,21 @@ export function Parcelas() {
                    <button 
                      onClick={(e) => { 
                        e.stopPropagation(); 
-                       if (viewMode === 'series') {
-                         if (window.confirm("Você deseja excluir TODA esta compra e todas as suas parcelas?")) {
-                           const key = parcela.seriesId || parcela.description.split(' (')[0];
+                       const isRecurring = !!parcela.seriesId || parcela.type !== 'Parcela';
+                       if (viewMode === 'series' || isRecurring) {
+                         if (window.confirm("Essa é uma compra com várias ocorrências. Você deseja excluir TODA a compra e suas parcelas?")) {
                            if (parcela.seriesId) {
                              deleteParcelaSeries(parcela.seriesId);
                            } else {
-                             // Fallback for old items: delete by description prefix
-                             parcelas.filter(p => p.description.startsWith(key)).forEach(p => deleteParcela(p.id));
+                             const key = parcela.description.split(' (')[0];
+                             const itemsToDelete = parcelas.filter(p => p.description.startsWith(key)).map(p => ({ id: p.id, type: 'Parcela' }));
+                             deleteMultipleItems(itemsToDelete);
                            }
                          }
                        } else {
-                        deleteParcela(parcela.id);
+                        if (window.confirm("Você tem certeza que deseja excluir esta parcela?")) {
+                           deleteParcela(parcela.id);
+                        }
                        }
                      }}
                      className="p-3.5 bg-slate-50 dark:bg-white/5 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-2xl transition-all"

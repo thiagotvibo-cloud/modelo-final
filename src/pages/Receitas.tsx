@@ -107,12 +107,12 @@ export function Receitas() {
                  onClick={() => handleEdit(receita)}
                  className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${received ? 'opacity-40 grayscale' : ''}`}
               >
-                <div className="flex-1">
-                  <h3 className="font-bold text-slate-800 dark:text-white text-[17px] tracking-tight mb-2 flex items-center gap-2">
-                    {receita.description}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 dark:text-white text-[17px] tracking-tight mb-2 flex flex-wrap items-center gap-2">
+                    <span className="truncate">{receita.description}</span>
                     {(receita.account || receita.bank) && (
                       <span 
-                        className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none"
+                        className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-widest leading-none shrink-0"
                         style={{ backgroundColor: contas.find(c => c.name === (receita.account || receita.bank))?.color || '#333333' }}
                       >
                         {receita.account || receita.bank}
@@ -120,14 +120,14 @@ export function Receitas() {
                     )}
                   </h3>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{formattedDate}</span>
-                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider">{receita.category}</span>
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider whitespace-nowrap">{formattedDate}</span>
+                    <span className="bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg uppercase tracking-wider whitespace-nowrap">{receita.category}</span>
                   </div>
                   {receita.observations && (
                     <p className="mt-2.5 text-[12px] text-slate-400 italic font-medium leading-tight">“{receita.observations}”</p>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-3 ml-4">
+                <div className="flex flex-col items-end gap-3 ml-4 shrink-0">
                    <p className="font-bold text-green-600 dark:text-green-500 text-[18px] tracking-tight leading-none">
                      {receita.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                    </p>

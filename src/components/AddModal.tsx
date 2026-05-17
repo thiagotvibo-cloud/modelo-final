@@ -96,7 +96,6 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
         const installmentValue = numValue / count;
         
         for (let i = 0; i < count; i++) {
-          // Use UTC to keep dates consistent across months
           const installmentDate = new Date(Date.UTC(
             baseDate.getUTCFullYear(), 
             baseDate.getUTCMonth() + i, 
@@ -118,21 +117,30 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
           });
         }
       } else {
-        // For Assinatura/Recorrente, generate only ONE record. 
-        // The Organizacao page will handle projecting it to future months.
-        items.push({
-          description,
-          value: numValue,
-          date: baseDate.toISOString(),
-          method,
-          currentInstallment: 1,
-          totalInstallments: 1,
-          status: isPaid ? 'Pago' : 'Pendente',
-          type: parcelaType,
-          seriesId,
-          bank,
-          observations
-        });
+        // For Assinatura/Recorrente, generate 60 records (5 years) to ensure 
+        // each month has its own exact record for independent 'Pago' status tracking.
+        const count = 60;
+        for (let i = 0; i < count; i++) {
+          const installmentDate = new Date(Date.UTC(
+            baseDate.getUTCFullYear(), 
+            baseDate.getUTCMonth() + i, 
+            baseDate.getUTCDate(), 
+            12, 0, 0
+          ));
+          items.push({
+            description,
+            value: numValue,
+            date: installmentDate.toISOString(),
+            method,
+            currentInstallment: i + 1,
+            totalInstallments: count,
+            status: (isPaid && i === 0) ? 'Pago' : 'Pendente',
+            type: parcelaType,
+            seriesId,
+            bank,
+            observations
+          });
+        }
       }
       
       if (items.length > 0) {
