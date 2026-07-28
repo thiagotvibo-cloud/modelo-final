@@ -179,7 +179,7 @@ export function Resumo() {
       animate="show"
       className="w-full pb-10"
     >
-      <motion.div variants={itemVariants} className="bg-[#0b1b42] bg-gradient-to-b from-[#0f2863] via-[#0b1b42] to-[#060e24] pt-[88px] px-4 sm:px-6 pb-32 mb-[-100px] rounded-b-[48px] relative overflow-hidden shadow-2xl">
+      <motion.div variants={itemVariants} className="bg-[#0b1b42] bg-gradient-to-b from-[#0f2863] via-[#0b1b42] to-[#060e24] pt-[88px] md:pt-10 px-4 sm:px-6 md:px-10 pb-32 mb-[-100px] rounded-b-[48px] md:rounded-[40px] relative overflow-hidden shadow-2xl">
         <div className="absolute inset-0 opacity-[0.25] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#3b82f6] rounded-full blur-[120px] opacity-[0.15] pointer-events-none"></div>
         
@@ -345,7 +345,7 @@ export function Resumo() {
 
       <div className="px-4 sm:px-6 mb-10">
         <motion.h3 variants={itemVariants} className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mb-5 px-1">Atalhos rápidos</motion.h3>
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+        <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link to="/metas" className="bg-white dark:bg-[#2C2C2E] p-5 rounded-[26px] border border-black/[0.03] dark:border-white/5 shadow-sm flex items-center gap-4 iphone-button hover:bg-slate-50 dark:hover:bg-white/5 transition-colors duration-300">
             <div className="w-11 h-11 bg-slate-900 border border-slate-700 dark:border-transparent rounded-2xl flex items-center justify-center text-white shadow-lg shadow-black/10">
               <Target className="w-5 h-5" />
