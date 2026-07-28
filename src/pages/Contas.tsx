@@ -1,6 +1,7 @@
 import { Plus, Wallet, Trash2, X, ChevronRight, Calendar, ArrowLeft, TrendingUp, CreditCard as CreditCardIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useFinance, Conta, Parcela, Gasto, Receita } from "../contexts/FinanceContext";
+import { useAuth } from "../contexts/AuthContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +9,7 @@ import { formatDateShort, getColorForAccount, getBaseDescription } from "../lib/
 
 export function Contas() {
   const { contas, updateConta, deleteConta, parcelas, gastos, receitas, updateParcela, deleteParcela, deleteParcelaSeries, updateGasto, deleteGasto, updateReceita, deleteReceita, deleteMultipleItems } = useFinance();
+  const { role } = useAuth();
   const [editingConta, setEditingConta] = useState<Conta | null>(null);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [viewingLabel, setViewingLabel] = useState<Conta | null>(null);
@@ -146,7 +148,18 @@ export function Contas() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm(`Tem certeza que deseja apagar "${subItem.description}"?`)) {
+                            const isRecurring = !!subItem.seriesId || subItem.type === "Assinatura" || subItem.type === "Recorrente";
+                            if (isRecurring) {
+                              if (window.confirm("Essa é uma compra com várias ocorrências. Você deseja excluir TODA a compra e suas parcelas?")) {
+                                if (subItem.seriesId) {
+                                  deleteParcelaSeries(subItem.seriesId);
+                                } else {
+                                  const key = subItem.description.split(" (")[0];
+                                  const itemsToDelete = parcelas.filter(p => p.description.startsWith(key)).map(p => ({ id: p.id, type: "Parcela" }));
+                                  deleteMultipleItems(itemsToDelete);
+                                }
+                              }
+                            } else if (window.confirm(`Tem certeza que deseja apagar "${subItem.description}"?`)) {
                                deleteMultipleItems([{ id: subItem.id, type: subItem.itemType }]);
                             }
                           }}
@@ -239,7 +252,8 @@ export function Contas() {
       if (editingItem.seriesId) {
         deleteParcelaSeries(editingItem.seriesId);
       } else {
-        parcelas.filter(p => p.description.startsWith(key)).forEach(p => deleteParcela(p.id));
+        const itemsToDelete = parcelas.filter(p => p.description.startsWith(key)).map(p => ({ id: p.id, type: 'Parcela' }));
+        deleteMultipleItems(itemsToDelete);
       }
       setEditingItem(null);
     }
@@ -282,14 +296,15 @@ export function Contas() {
                 <h1 className="text-[28px] font-bold text-slate-900 dark:text-white tracking-tight">Etiquetas de Contas</h1>
                 <p className="text-sm text-slate-400 font-medium tracking-tight">Toque para ver gastos | Segure para editar</p>
               </div>
-              <button 
-                onClick={() => setIsAdding(true)}
-                className="w-12 h-12 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
-              >
-                <Plus className="w-6 h-6" />
-              </button>
+              {role === 'Administrador' && (
+                <button 
+                  onClick={() => setIsAdding(true)}
+                  className="w-12 h-12 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                >
+                  <Plus className="w-6 h-6" />
+                </button>
+              )}
             </div>
-
             <div className="space-y-4">
               <AnimatePresence mode="popLayout">
                 {contas.length > 0 ? (
@@ -305,8 +320,14 @@ export function Contas() {
                         key={conta.id} 
                         className="iphone-card p-6 shadow-sm cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] border-l-[6px] select-none"
                         style={{ borderLeftColor: conta.color || '#333333' }}
-                        onPointerDown={() => startPress(conta)}
-                        onPointerUp={() => endPress(conta)}
+                        onPointerDown={() => {
+                          if (role === 'Administrador') {
+                            startPress(conta);
+                          } else {
+                            setViewingLabel(conta);
+                          }
+                        }}
+                        onPointerUp={() => role === 'Administrador' && endPress(conta)}
                         onPointerLeave={() => { if(timerRef.current) clearTimeout(timerRef.current); }}
                         onContextMenu={(e) => e.preventDefault()} // Block context menu for cleaner feel
                       >

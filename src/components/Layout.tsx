@@ -1,21 +1,21 @@
 import { useLocation, Link, useOutlet } from "react-router-dom";
-import { LogOut, LayoutDashboard, Receipt, CreditCard, ArrowDownUp, Wallet, Target, Calendar, AlertCircle, TrendingUp, BarChart3, User } from "lucide-react";
+import { LogOut, LayoutDashboard, Receipt, CreditCard, ArrowDownUp, Wallet, Target, Calendar, AlertCircle, TrendingUp, BarChart3, User, Menu, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import React from "react";
+import React, { useState } from "react";
+import { AddModal } from "./AddModal";
 
 const navItems = [
-  { name: "Resumo", href: "/resumo", icon: LayoutDashboard },
+  { name: "Início", href: "/resumo", icon: LayoutDashboard },
   { name: "Gastos", href: "/gastos", icon: Receipt },
-  { name: "Parcelas", href: "/parcelas", icon: CreditCard },
-  { name: "Receitas", href: "/receitas", icon: ArrowDownUp },
-  { name: "Organização", href: "/organizacao", icon: Calendar },
-  { name: "Perfil", href: "/perfil", icon: User },
+  { name: "Calendário", href: "/calendario", icon: Calendar },
+  { name: "Mais", href: "/mais", icon: Menu },
 ];
 
 export function Layout() {
   const location = useLocation();
   const outlet = useOutlet();
   const isResumo = location.pathname === "/resumo" || location.pathname === "/";
+  const [isAdding, setIsAdding] = useState(false);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F2F2F7] dark:bg-[#1F1F1F] text-slate-900 dark:text-slate-100 font-sans relative overflow-x-hidden transition-colors duration-300">
@@ -55,8 +55,38 @@ export function Layout() {
 
         <nav className="bg-white/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-black/[0.05] dark:border-white/[0.05] fixed bottom-0 w-full max-w-2xl z-50 pb-[env(safe-area-inset-bottom)] transition-colors duration-300">
           <div className="flex px-1.5 py-3 justify-around items-center h-[76px]">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const isActive = location.pathname === item.href || (item.href !== "/resumo" && location.pathname.startsWith(item.href));
+              
+              if (index === 2) {
+                // Insert center Add button before the third item
+                return (
+                  <React.Fragment key="add-button-group">
+                    <button
+                      onClick={() => setIsAdding(true)}
+                      className="relative -top-5 flex flex-col items-center justify-center gap-1 transition-all duration-300 iphone-button mx-2"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-blue-600 shadow-lg shadow-blue-500/30 text-white flex items-center justify-center active:scale-95 transition-all">
+                        <Plus className="w-7 h-7" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-[10px] tracking-tight font-bold text-slate-500 mt-1">Adicionar</span>
+                    </button>
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`flex flex-col items-center justify-center gap-1 transition-all duration-300 iphone-button ${
+                        isActive ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-2xl transition-all ${isActive ? "bg-black/5 dark:bg-white/10" : ""}`}>
+                        <item.icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] tracking-tight font-bold ${isActive ? "opacity-100" : "opacity-60"}`}>{item.name}</span>
+                    </Link>
+                  </React.Fragment>
+                );
+              }
+
               return (
                 <Link
                   key={item.name}
@@ -75,6 +105,8 @@ export function Layout() {
           </div>
         </nav>
       </div>
+
+      <AddModal isOpen={isAdding} onClose={() => setIsAdding(false)} defaultType="Gasto" />
     </div>
   );
 }

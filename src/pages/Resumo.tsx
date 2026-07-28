@@ -51,19 +51,32 @@ export function Resumo() {
 
   const totalReceitas = currentReceitas.reduce((a, b) => a + b.value, 0);
   const totalRecebido = currentReceitas.filter(r => r.status === 'Recebido').reduce((a, b) => a + b.value, 0);
-
+  const rendaAindaNaoRecebida = totalReceitas - totalRecebido;
+  
   const totalGastos = currentGastos.reduce((a, b) => a + b.value, 0);
   const totalPago = currentGastos.filter(g => g.status === 'Pago').reduce((a, b) => a + b.value, 0);
-
+  
   const totalParcelas = currentParcelas.reduce((a, b) => a + b.value, 0);
   const pagoParcelas = currentParcelas.filter(p => p.status === 'Pago').reduce((a, b) => a + b.value, 0);
 
   const totalDespesas = totalGastos + totalParcelas;
-  const saldo = totalReceitas - totalDespesas;
+  const saldoPrevisto = totalReceitas - totalDespesas;
   
   const totalPagamentosMes = totalPago + pagoParcelas;
   const pagamentosAberto = totalDespesas - totalPagamentosMes;
   const pagamentosPerc = totalDespesas > 0 ? Math.round((totalPagamentosMes / totalDespesas) * 100) : 0;
+  
+  // Saldo Atual: Apenas o que já foi recebido - o que já foi gasto OU que ainda precisa pagar (total despesas)
+  // Baseando-se no requisito: "Saldo atual: dinheiro realmente disponível até a data atual, considerando somente as receitas já recebidas e as despesas já realizadas ou reservadas."
+  // Significa que consideramos a receita recebida, e subtraímos *todas* as despesas do mês (como sendo reservadas).
+  const saldoAtual = totalRecebido - totalDespesas;
+
+  const percentualComprometido = totalReceitas > 0 ? (totalDespesas / totalReceitas) * 100 : 0;
+
+  let situacaoFinanceira = "Confortável";
+  if (totalDespesas > totalReceitas) situacaoFinanceira = "Gastos acima da renda";
+  else if (percentualComprometido >= 90) situacaoFinanceira = "Orçamento apertado";
+  else if (percentualComprometido >= 75) situacaoFinanceira = "Atenção";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -191,8 +204,68 @@ export function Resumo() {
           </Link>
         </div>
 
-        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-8 pt-4">
-          <motion.div variants={itemVariants} className="w-full max-w-sm">
+        <div className="flex flex-col items-center justify-center relative z-10 w-full mb-8 pt-4 space-y-4">
+          {/* Main Dashboard Cards */}
+          <motion.div variants={itemVariants} className="w-full">
+            <div className="bg-white/10 backdrop-blur-md rounded-[32px] p-6 border border-white/20">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-white/80 font-medium">Situação do Mês</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  situacaoFinanceira === 'Confortável' ? 'bg-green-500/20 text-green-300' :
+                  situacaoFinanceira === 'Atenção' ? 'bg-yellow-500/20 text-yellow-300' :
+                  situacaoFinanceira === 'Orçamento apertado' ? 'bg-orange-500/20 text-orange-300' :
+                  'bg-red-500/20 text-red-300'
+                }`}>
+                  {situacaoFinanceira}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-white/60 text-[12px] font-bold uppercase tracking-wider mb-1">Renda Prevista</p>
+                  <p className="text-white font-bold text-xl">{totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </div>
+                <div>
+                  <p className="text-white/60 text-[12px] font-bold uppercase tracking-wider mb-1">Renda Recebida</p>
+                  <p className="text-white font-bold text-xl">{totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-white/60 text-[12px] font-bold uppercase tracking-wider mb-1">Saldo Atual</p>
+                  <p className="text-white font-bold text-2xl">{saldoAtual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </div>
+                <div>
+                  <p className="text-white/60 text-[12px] font-bold uppercase tracking-wider mb-1">Saldo Previsto</p>
+                  <p className="text-white font-bold text-2xl">{saldoPrevisto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </div>
+              </div>
+
+              <div className="w-full bg-black/20 rounded-full h-2 mb-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full ${percentualComprometido > 90 ? 'bg-red-500' : percentualComprometido > 75 ? 'bg-orange-500' : 'bg-blue-500'}`}
+                  style={{ width: `${Math.min(percentualComprometido, 100)}%` }}
+                ></div>
+              </div>
+              <p className="text-white/60 text-[11px] text-center font-medium">
+                {percentualComprometido.toFixed(1)}% da renda comprometida
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="w-full grid grid-cols-2 gap-3">
+             <div className="bg-white/5 backdrop-blur-md rounded-[24px] p-4 border border-white/10">
+               <p className="text-white/60 text-[11px] font-bold uppercase tracking-wider mb-1">Contas Pagas</p>
+               <p className="text-white font-bold text-lg">{totalPagamentosMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+             </div>
+             <div className="bg-white/5 backdrop-blur-md rounded-[24px] p-4 border border-white/10">
+               <p className="text-white/60 text-[11px] font-bold uppercase tracking-wider mb-1">Pendentes</p>
+               <p className="text-white font-bold text-lg">{pagamentosAberto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+             </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="w-full max-w-sm mt-4">
             {overdueAmount > 0 ? (
               <Link to="/contas" className="block bg-red-500/10 backdrop-blur-md rounded-[32px] p-6 border border-red-500/20 hover:bg-red-500/20 transition-all text-center group">
                 <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30 group-hover:scale-110 transition-transform">

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Plus, Check, Pencil, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useFinance, Receita } from "../contexts/FinanceContext";
+import { useAuth } from "../contexts/AuthContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { formatDateShort, getColorForAccount } from "../lib/utils";
@@ -8,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function Receitas() {
   const { receitas, updateReceita, deleteReceita, contas } = useFinance();
+  const { role } = useAuth();
   const [editingItem, setEditingItem] = useState<Receita | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -61,12 +63,14 @@ export function Receitas() {
           <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">Receitas</h1>
           <p className="text-sm text-slate-400 font-medium tracking-tight">Gestão de entradas e recebimentos</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
+        {role === 'Administrador' && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
        <div className="flex items-center justify-between mb-10 bg-white dark:bg-[#2C2C2E] border border-black/[0.03] dark:border-white/5 rounded-[24px] p-2 shadow-sm">
@@ -104,8 +108,8 @@ export function Receitas() {
                  exit={{ opacity: 0 }}
                  transition={{ duration: 0.1 }}
                  key={receita.id}
-                 onClick={() => handleEdit(receita)}
-                 className={`iphone-card p-6 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${received ? 'opacity-40 grayscale' : ''}`}
+                 onClick={() => role === 'Administrador' && handleEdit(receita)}
+                 className={`iphone-card p-6 flex items-center justify-between transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${received ? 'opacity-40 grayscale' : ''} ${role === 'Administrador' ? 'cursor-pointer active:scale-[0.98]' : ''}`}
               >
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-slate-800 dark:text-white text-[17px] tracking-tight mb-2 flex flex-wrap items-center gap-2">

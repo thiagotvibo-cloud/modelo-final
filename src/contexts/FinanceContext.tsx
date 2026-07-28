@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
-export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; account?: string; observations?: string; user_id?: string; };
-export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido'; user_id?: string; bank?: string; account?: string; observations?: string; };
-export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; account?: string; observations?: string; user_id?: string; };
+export type Gasto = { id: string; description: string; date: string; value: number; method: string; status: 'Pendente' | 'Pago'; category?: string; bank?: string; account?: string; observations?: string; user_id?: string; responsible?: 'Kely' | 'Thiago' | 'Casa'; };
+export type Receita = { id: string; description: string; date: string; value: number; category: string; status: 'Previsto' | 'Recebido' | 'Atrasada' | 'Cancelada'; user_id?: string; bank?: string; account?: string; observations?: string; responsible?: 'Kely' | 'Thiago'; isRecurring?: boolean; recurrenceFrequency?: 'Mensal' | 'Semanal' | 'Anual'; recurrenceEndDate?: string; };
+export type Parcela = { id: string; description: string; date: string; value: number; method: string; currentInstallment: number; totalInstallments: number; status: 'Pendente' | 'Pago'; type: 'Parcela' | 'Assinatura' | 'Recorrente'; seriesId?: string; bank?: string; account?: string; observations?: string; user_id?: string; responsible?: 'Kely' | 'Thiago' | 'Casa'; };
 
 export type Orcamento = { id: string; category: string; limit: number; spent: number; user_id?: string; };
 export type Meta = { id: string; title: string; target: number; saved: number; deadline: string; user_id?: string; };
@@ -51,14 +51,34 @@ export type FinanceContextType = {
   deleteConta: (id: string) => Promise<void>;
 };
 
+const currentYear = new Date().getFullYear();
+const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+
 const defaultGastos: Gasto[] = [];
-const defaultReceitas: Receita[] = [];
+const defaultReceitas: Receita[] = [
+  { id: '1', description: 'Salário Thiago', date: `${currentYear}-${currentMonth}-05T12:00:00.000Z`, value: 2300, category: 'Salário', status: 'Previsto', bank: 'Nubank Thiago' },
+  { id: '2', description: 'Salário Kely', date: `${currentYear}-${currentMonth}-05T12:00:00.000Z`, value: 1500, category: 'Salário', status: 'Previsto', bank: 'Bradesco Kely' },
+  { id: '3', description: 'Vale Thiago', date: `${currentYear}-${currentMonth}-20T12:00:00.000Z`, value: 1800, category: 'Vale', status: 'Previsto', bank: 'Nubank Thiago' }
+];
 const defaultParcelas: Parcela[] = [];
-const defaultOrcamentos: Orcamento[] = [];
+const defaultOrcamentos: Orcamento[] = [
+  { id: '1', category: 'Mercado', limit: 1300, spent: 0 },
+  { id: '2', category: 'Farmácia', limit: 200, spent: 0 },
+  { id: '3', category: 'Lazer', limit: 400, spent: 0 },
+  { id: '4', category: 'Combustível', limit: 500, spent: 0 },
+];
 const defaultMetas: Meta[] = [];
 const defaultDividas: Divida[] = [];
 const defaultInvestimentos: Investimento[] = [];
-const defaultContas: Conta[] = [];
+const defaultContas: Conta[] = [
+  { id: '1', name: 'Pan Maria — final 8010', institution: 'Banco Pan', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#0ea5e9' },
+  { id: '2', name: 'Nubank Maria — final 6795', institution: 'Nubank', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#8b5cf6' },
+  { id: '3', name: 'Bradesco Kely — final 6363', institution: 'Bradesco', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#ef4444' },
+  { id: '4', name: 'Nubank Thiago — final 7995', institution: 'Nubank', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#8b5cf6' },
+  { id: '5', name: 'Mercado Pago Kely — final 5112', institution: 'Mercado Pago', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#3b82f6' },
+  { id: '6', name: 'Shopee Kely', institution: 'Shopee', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#f97316' },
+  { id: '7', name: 'Shopee Thiago', institution: 'Shopee', balance: 0, expectedBalance: 0, type: 'Cartão de Crédito', color: '#f97316' }
+];
 
 function usePersistentState<T>(key: string, defaultValue: T, tableName: string, user: any, onFetchSuccess?: () => void): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
@@ -441,8 +461,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const chunkArray = <T,>(array: T[], size: number): T[][] => {
+    const result: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      result.push(array.slice(i, i + size));
+    }
+    return result;
+  };
+
   const deleteMultipleItems = async (items: {id: string, type: string}[]) => {
-    const parcelasIds = items.filter(i => i.type === 'Parcela').map(i => i.id);
+    // Treat 'Assinatura', 'Aluguel', 'Financiamento', 'Compra Recorrente' as 'Parcela' for deletion logic from other views
+    const parcelasTypes = ['Parcela', 'Assinatura', 'Aluguel', 'Financiamento', 'Compra Recorrente'];
+    const parcelasIds = items.filter(i => parcelasTypes.includes(i.type)).map(i => i.id);
     const gastosIds = items.filter(i => i.type === 'Gasto').map(i => i.id);
     const receitasIds = items.filter(i => i.type === 'Receita').map(i => i.id);
 
@@ -461,13 +491,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     try {
       if (parcelasIds.length > 0) {
-        await supabase.from('parcelas').delete().in('id', parcelasIds).eq('user_id', user.id);
+        const chunks = chunkArray(parcelasIds, 20);
+        for (const chunk of chunks) {
+          await supabase.from('parcelas').delete().in('id', chunk).eq('user_id', user.id);
+        }
       }
       if (gastosIds.length > 0) {
-        await supabase.from('gastos').delete().in('id', gastosIds).eq('user_id', user.id);
+        const chunks = chunkArray(gastosIds, 20);
+        for (const chunk of chunks) {
+          await supabase.from('gastos').delete().in('id', chunk).eq('user_id', user.id);
+        }
       }
       if (receitasIds.length > 0) {
-        await supabase.from('receitas').delete().in('id', receitasIds).eq('user_id', user.id);
+        const chunks = chunkArray(receitasIds, 20);
+        for (const chunk of chunks) {
+          await supabase.from('receitas').delete().in('id', chunk).eq('user_id', user.id);
+        }
       }
     } catch (e) {
       console.error("Error bulk deleting items", e);
@@ -485,13 +524,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Delete in a single query via eq('seriesId', seriesId), wait.. actually we don't have a seriesId on table directly perhaps, let's look:
-    // We can delete by matching the array of IDs to be safe
     const ids = toDelete.map(p => p.id);
-    const { error } = await supabase.from('parcelas').delete().in('id', ids).eq('user_id', user.id);
-    if (error) {
-       console.error(`Error syncing delete series from parcelas:`, error);
-       alert(`Erro ao excluir série de parcelas: ${error.message}`);
+    const chunks = chunkArray(ids, 20);
+    
+    for (const chunk of chunks) {
+      const { error } = await supabase.from('parcelas').delete().in('id', chunk).eq('user_id', user.id);
+      if (error) {
+         console.error(`Error syncing delete series from parcelas:`, error);
+      }
     }
   };
 

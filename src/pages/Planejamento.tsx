@@ -1,14 +1,56 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFinance, Orcamento } from "../contexts/FinanceContext";
+import { useAuth } from "../contexts/AuthContext";
 import { EditModal } from "../components/EditModal";
 import { AddModal } from "../components/AddModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { getBaseDescription } from "../lib/utils";
 
 export function Planejamento() {
-  const { orcamentos, updateOrcamento, deleteOrcamento } = useFinance();
+  const { orcamentos, gastos, parcelas, updateOrcamento, deleteOrcamento } = useFinance();
+  const { role } = useAuth();
   const [editingItem, setEditingItem] = useState<Orcamento | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getSafeDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    const datePart = dateStr.split('T')[0];
+    const [y, m, d] = datePart.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0);
+  };
+
+  const filterByDate = (dateStr: string) => {
+    const d = getSafeDate(dateStr);
+    return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
+  };
+  
+  const deduplicateMonthSeries = (items: any[]) => {
+    const seen = new Map();
+    return items.filter(item => {
+      if (item.type === 'Assinatura' || item.type === 'Recorrente' || item.description?.toLowerCase().includes('aluguel')) {
+        const key = item.seriesId || getBaseDescription(item.description);
+        if (seen.has(key)) return false;
+        seen.set(key, true);
+      }
+      return true;
+    });
+  };
+
+  // Calculate dynamic spent for each budget category
+  const getDynamicSpent = (category: string) => {
+    const matchingGastos = gastos.filter(g => g.category === category && filterByDate(g.date));
+    
+    // Attempt to match parcelas by searching description for category
+    const matchingParcelas = deduplicateMonthSeries(parcelas.filter(p => filterByDate(p.date))).filter(p => {
+       // Many Parcelas don't have explicit category fields stored yet, we infer by description matching
+       return p.description.toLowerCase().includes(category.toLowerCase());
+    });
+    
+    return matchingGastos.reduce((acc, curr) => acc + curr.value, 0) + 
+           matchingParcelas.reduce((acc, curr) => acc + curr.value, 0);
+  };
 
   const handleEdit = (orcamento: Orcamento) => {
     setEditingItem(orcamento);
@@ -25,22 +67,25 @@ export function Planejamento() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-[28px] font-bold text-slate-900 dark:text-white tracking-tight">Orçamentos</h1>
-          <p className="text-sm text-slate-400 font-medium tracking-tight">Defina seus limites mensais</p>
+          <p className="text-sm text-slate-400 font-medium tracking-tight">Limites mensais ({currentDate.toLocaleDateString('pt-BR', { month: 'long' })})</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="w-12 h-12 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
+        {role === 'Administrador' && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="w-12 h-12 bg-black dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
         <AnimatePresence mode="popLayout">
           {orcamentos.length > 0 ? (
             orcamentos.map((orcamento, index) => {
-              const perc = Math.min(100, Math.round((orcamento.spent / orcamento.limit) * 100));
-              const isOverLimit = orcamento.spent > orcamento.limit;
+              const currentSpent = getDynamicSpent(orcamento.category);
+              const perc = Math.min(100, Math.round((currentSpent / orcamento.limit) * 100));
+              const isOverLimit = currentSpent > orcamento.limit;
               return (
                 <motion.div 
                   layout
@@ -49,8 +94,8 @@ export function Planejamento() {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.1 }}
                   key={orcamento.id} 
-                  className="iphone-card p-7 shadow-sm cursor-pointer active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-[#323235]"
-                  onClick={() => handleEdit(orcamento)}
+                  className={`iphone-card p-7 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-[#323235] ${role === 'Administrador' ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                  onClick={() => role === 'Administrador' && handleEdit(orcamento)}
                 >
                   <div className="flex justify-between items-start mb-6">
                     <h3 className="font-bold text-slate-900 dark:text-white text-[19px] tracking-tight">{orcamento.category}</h3>
@@ -66,7 +111,7 @@ export function Planejamento() {
                      <div className="text-right">
                         <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Gasto vs Limite</p>
                         <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-tight">
-                          {orcamento.spent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de {orcamento.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          {currentSpent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de {orcamento.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                      </div>
                   </div>

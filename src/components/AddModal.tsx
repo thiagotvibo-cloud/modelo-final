@@ -2,6 +2,7 @@ import { getLocalYYYYMMDD, parseLocaleNumber } from "../lib/utils";
 import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useFinance } from "../contexts/FinanceContext";
+import { useAuth } from "../contexts/AuthContext";
 
 type AddModalProps = {
   isOpen: boolean;
@@ -12,6 +13,7 @@ type AddModalProps = {
 
 export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcelaType = 'Parcela' }: AddModalProps) {
   const { addGasto, addReceita, addParcela, addMultipleParcelas, addDivida, addMeta, addOrcamento, addInvestimento, addConta, contas } = useFinance();
+  const { role } = useAuth();
   
   const [description, setDescription] = useState("");
   const [value, setValue] = useState("");
@@ -27,9 +29,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
 
   const [totalInstallments, setTotalInstallments] = useState("1");
   const [parcelaType, setParcelaType] = useState<'Parcela' | 'Assinatura' | 'Recorrente'>(defaultParcelaType);
-  const [bank, setBank] = useState("");
-  const [observations, setObservations] = useState("");
+  const [bank, setBank] = useState("");  const [observations, setObservations] = useState("");
   const [accountColor, setAccountColor] = useState("#000000");
+  const [responsible, setResponsible] = useState<'Kely' | 'Thiago' | 'Casa' | ''>("");
 
   useEffect(() => {
     if (isOpen) {
@@ -48,6 +50,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
       setBank(contas.length > 0 ? contas[0].name : "");
       setObservations("");
       setAccountColor("#000000");
+      setResponsible("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -58,6 +61,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
     const numValue = parseLocaleNumber(value);
     const numTarget = parseLocaleNumber(target);
     const numLimit = parseLocaleNumber(limit);
+
     const parsedDate = date // 'YYYY-MM-DD'
       ? `${date}T12:00:00Z` // Store as noon UTC to avoid missing days
       : `${getLocalYYYYMMDD()}T12:00:00Z`;
@@ -72,7 +76,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
         status: isPaid ? 'Pago' : 'Pendente',
         category,
         bank,
-        observations
+        observations,
+        responsible: responsible as any
       });
     } else if (type === 'Receita') {
       if (!description || isNaN(numValue)) return;
@@ -82,7 +87,9 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
         date: parsedDate,
         category,
         account: bank,
-        status: isPaid ? 'Recebido' : 'Previsto'
+        status: isPaid ? 'Recebido' : 'Previsto',
+        responsible: (responsible === 'Casa' ? undefined : responsible) as any,
+        observations
       });
     } else if (type === 'Parcela') {
       if (!description || isNaN(numValue)) return;
@@ -113,7 +120,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
             type: parcelaType,
             seriesId,
             bank,
-            observations
+            observations,
+            responsible: responsible as any
           });
         }
       } else {
@@ -138,7 +146,8 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
             type: parcelaType,
             seriesId,
             bank,
-            observations
+            observations,
+            responsible: responsible as any
           });
         }
       }
@@ -391,11 +400,11 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
                     className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all appearance-none text-[16px]"
                   >
                     <option value="Gasto">💵 Gasto único</option>
-                    <option value="Receita">💰 Receita</option>
+                    {role === 'Administrador' && <option value="Receita">💰 Receita</option>}
                     <option value="Parcela">💳 Parcelado</option>
                     <option value="Dívida">📉 Dívida</option>
                     <option value="Investimento">📈 Investimento</option>
-                    <option value="Conta">🏷️ Etiqueta de Conta</option>
+                    {role === 'Administrador' && <option value="Conta">🏷️ Etiqueta de Conta</option>}
                   </select>
                 </div>
               </div>
@@ -460,8 +469,21 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
                   </select>
                 </div>
               )}
-
-              {type === 'Parcela' && parcelaType === 'Parcela' && (
+              {['Gasto', 'Receita', 'Parcela'].includes(type) ? (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Responsável</label>
+                  <select
+                    value={responsible}
+                    onChange={(e) => setResponsible(e.target.value as any)}
+                    className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all appearance-none text-[16px]"
+                  >
+                    <option value="">Não informado</option>
+                    <option value="Kely">Kely</option>
+                    <option value="Thiago">Thiago</option>
+                    {type !== 'Receita' && <option value="Casa">Casa</option>}
+                  </select>
+                </div>
+              ) : type === 'Parcela' && parcelaType === 'Parcela' ? (
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Quantidade</label>
                   <input 
@@ -472,7 +494,7 @@ export function AddModal({ isOpen, onClose, defaultType = 'Gasto', defaultParcel
                     className="w-full border-2 border-slate-50 rounded-2xl px-6 py-4.5 text-slate-900 font-bold focus:outline-none focus:border-black bg-slate-50/50 transition-all text-[16px]"
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 

@@ -13,10 +13,11 @@ import { Investimentos } from "./pages/Investimentos";
 import { Relatorios } from "./pages/Relatorios";
 import { Organizacao } from "./pages/Organizacao";
 import { Perfil } from "./pages/Perfil";
+import { Mais } from "./pages/Mais";
+import { Calendario } from "./pages/Calendario";
 import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Login } from "./pages/Login";
-
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -51,10 +52,12 @@ export default function App() {
               <Route path="metas" element={<Metas />} />
               <Route path="planejamento" element={<Planejamento />} />
               <Route path="organizacao" element={<Organizacao />} />
+              <Route path="calendario" element={<Calendario />} />
               <Route path="dividas" element={<Dividas />} />
               <Route path="investimentos" element={<Investimentos />} />
               <Route path="relatorios" element={<Relatorios />} />
               <Route path="perfil" element={<Perfil />} />
+              <Route path="mais" element={<Mais />} />
             </Route>
           </Routes>
         </BrowserRouter>
